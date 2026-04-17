@@ -1,0 +1,150 @@
+services:
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jiangboqiu}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      POSTGRES_DB: ${POSTGRES_DB:-interview}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      disable: true
+
+# redis:
+#   image: redis:7-alpine
+#   restart: unless-stopped
+#   ports:
+#     - "6379:6379"
+#   volumes:
+#     - redis_data:/data
+#   healthcheck:
+#     test: ["CMD", "redis-cli", "ping"]
+#     interval: 10s
+#     timeout: 5s
+#     retries: 5
+
+  # ── Backend Services ────────────────────────────────────────────────────────
+  # data-service:
+  #   build:
+  #     context: ./services/data-service
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   env_file:
+  #     - ./configs/dev.env
+  #   environment:
+  #     DATABASE_URL: postgresql://${POSTGRES_USER:-interview}:${POSTGRES_PASSWORD:-interview}@postgres:5432/${POSTGRES_DB:-interview}
+  #     REDIS_URL: redis://redis:6379
+  #   ports:
+  #     - "8001:8001"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+
+  # agent-service:
+  #   build:
+  #     context: ./services/agent-service
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   env_file:
+  #     - ./configs/dev.env
+  #   environment:
+  #     DATABASE_URL: postgresql://${POSTGRES_USER:-interview}:${POSTGRES_PASSWORD:-interview}@postgres:5432/${POSTGRES_DB:-interview}
+  #     REDIS_URL: redis://redis:6379
+  #     DATA_SERVICE_URL: http://data-service:8001
+  #   ports:
+  #     - "8002:8002"
+  #   depends_on:
+  #     data-service:
+  #       condition: service_started
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+
+  # scoring-service:
+  #   build:
+  #     context: ./services/scoring-service
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   env_file:
+  #     - ./configs/dev.env
+  #   environment:
+  #     DATABASE_URL: postgresql://${POSTGRES_USER:-interview}:${POSTGRES_PASSWORD:-interview}@postgres:5432/${POSTGRES_DB:-interview}
+  #     REDIS_URL: redis://redis:6379
+  #     DATA_SERVICE_URL: http://data-service:8001
+  #   ports:
+  #     - "8003:8003"
+  #   depends_on:
+  #     data-service:
+  #       condition: service_started
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+
+  # worker-service:
+  #   build:
+  #     context: ./services/worker-service
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   env_file:
+  #     - ./configs/dev.env
+  #   environment:
+  #     DATABASE_URL: postgresql://${POSTGRES_USER:-interview}:${POSTGRES_PASSWORD:-interview}@postgres:5432/${POSTGRES_DB:-interview}
+  #     REDIS_URL: redis://redis:6379
+  #     AGENT_SERVICE_URL: http://agent-service:8002
+  #     SCORING_SERVICE_URL: http://scoring-service:8003
+  #   depends_on:
+  #     agent-service:
+  #       condition: service_started
+  #     scoring-service:
+  #       condition: service_started
+  #     redis:
+  #       condition: service_healthy
+
+  # ── Applications ────────────────────────────────────────────────────────────
+  # api:
+  #   build:
+  #     context: ./apps/api
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   env_file:
+  #     - ./configs/dev.env
+  #   environment:
+  #     DATABASE_URL: postgresql://${POSTGRES_USER:-interview}:${POSTGRES_PASSWORD:-interview}@postgres:5432/${POSTGRES_DB:-interview}
+  #     REDIS_URL: redis://redis:6379
+  #     AGENT_SERVICE_URL: http://agent-service:8002
+  #     DATA_SERVICE_URL: http://data-service:8001
+  #     SCORING_SERVICE_URL: http://scoring-service:8003
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+
+  # web:
+  #   build:
+  #     context: ./apps/web
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   env_file:
+  #     - ./configs/dev.env
+  #   environment:
+  #     NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - api
+
+volumes:
+  postgres_data:
+  # redis_data:
