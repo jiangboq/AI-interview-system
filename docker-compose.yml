@@ -110,40 +110,29 @@ services:
   #       condition: service_healthy
 
   # ── Applications ────────────────────────────────────────────────────────────
-  # api:
-  #   build:
-  #     context: ./apps/api
-  #     dockerfile: Dockerfile
-  #   restart: unless-stopped
-  #   env_file:
-  #     - ./configs/dev.env
-  #   environment:
-  #     DATABASE_URL: postgresql://${POSTGRES_USER:-interview}:${POSTGRES_PASSWORD:-interview}@postgres:5432/${POSTGRES_DB:-interview}
-  #     REDIS_URL: redis://redis:6379
-  #     AGENT_SERVICE_URL: http://agent-service:8002
-  #     DATA_SERVICE_URL: http://data-service:8001
-  #     SCORING_SERVICE_URL: http://scoring-service:8003
-  #   ports:
-  #     - "8000:8000"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-jiangboqiu}:${POSTGRES_PASSWORD:-admin}@postgres:5432/${POSTGRES_DB:-interview}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
 
-  # web:
-  #   build:
-  #     context: ./apps/web
-  #     dockerfile: Dockerfile
-  #   restart: unless-stopped
-  #   env_file:
-  #     - ./configs/dev.env
-  #   environment:
-  #     NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - api
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:
