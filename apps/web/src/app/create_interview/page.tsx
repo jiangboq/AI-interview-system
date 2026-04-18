@@ -91,7 +91,7 @@ export default function CreateInterviewPage() {
             />
             {error && <p style={styles.error}>{error}</p>}
             <button style={styles.button} onClick={startInterview} disabled={loading}>
-              {loading ? "Starting…" : "Start Interview"}
+              {loading ? "Creating…" : "Create Interview"}
             </button>
           </div>
         ) : (
