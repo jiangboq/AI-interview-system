@@ -1,68 +1,40 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
 const LEVEL_COLORS: Record<string, { bg: string; text: string }> = {
-  Junior: { bg: "#d1fae5", text: "#065f46" },
-  Mid: { bg: "#dbeafe", text: "#1e40af" },
-  Senior: { bg: "#ede9fe", text: "#4f46e5" },
-  Lead: { bg: "#fee2e2", text: "#991b1b" },
+  junior: { bg: "#d1fae5", text: "#065f46" },
+  mid:    { bg: "#dbeafe", text: "#1e40af" },
+  senior: { bg: "#ede9fe", text: "#4f46e5" },
+  staff:  { bg: "#fee2e2", text: "#991b1b" },
 };
 
 interface Job {
-  id: number;
-  title: string;
-  description: string;
-  level: "Junior" | "Mid" | "Senior" | "Lead";
+  id: string;
+  title: string | null;
+  description: string | null;
+  level: string | null;
 }
-
-const JOBS: Job[] = [
-  {
-    id: 1,
-    title: "Frontend Engineer",
-    description:
-      "Build and maintain responsive web UIs using React and TypeScript. Collaborate closely with designers and backend engineers.",
-    level: "Mid",
-  },
-  {
-    id: 2,
-    title: "Backend Engineer",
-    description:
-      "Design and implement scalable REST APIs in Python. Own the data layer and work with distributed systems.",
-    level: "Senior",
-  },
-  {
-    id: 3,
-    title: "ML Engineer",
-    description:
-      "Develop and productionize machine learning models. Integrate LLM-based features into our interview pipeline.",
-    level: "Senior",
-  },
-  {
-    id: 4,
-    title: "DevOps Engineer",
-    description:
-      "Manage CI/CD pipelines, Kubernetes clusters, and cloud infrastructure on AWS. Improve developer experience.",
-    level: "Mid",
-  },
-  {
-    id: 5,
-    title: "Software Engineer",
-    description:
-      "Entry-level role for full-stack development. Great opportunity to learn across the stack and ship real features.",
-    level: "Junior",
-  },
-  {
-    id: 6,
-    title: "Engineering Manager",
-    description:
-      "Lead a cross-functional team of 6–8 engineers. Drive roadmap planning, hiring, and technical excellence.",
-    level: "Lead",
-  },
-];
 
 export default function JobsPage() {
   const router = useRouter();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/jobs`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch jobs");
+        return res.json();
+      })
+      .then(setJobs)
+      .catch(() => setError("Could not load jobs. Make sure the backend is running."))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <main style={styles.main}>
@@ -70,31 +42,32 @@ export default function JobsPage() {
         <div style={styles.header}>
           <div>
             <h1 style={styles.title}>Open Positions</h1>
-            <p style={styles.subtitle}>{JOBS.length} roles available</p>
+            <p style={styles.subtitle}>{loading ? "Loading…" : `${jobs.length} roles available`}</p>
           </div>
           <button style={styles.createButton} onClick={() => router.push("/create_job")}>
             Create a Job
           </button>
         </div>
 
+        {error && <p style={styles.error}>{error}</p>}
+
+        {loading && !error && <p style={styles.muted}>Loading jobs…</p>}
+
         <div style={styles.grid}>
-          {JOBS.map((job) => {
-            const badge = LEVEL_COLORS[job.level];
+          {jobs.map((job) => {
+            const level = job.level ?? "";
+            const badge = LEVEL_COLORS[level] ?? { bg: "#e9ecef", text: "#495057" };
             return (
               <div key={job.id} style={styles.card}>
                 <div style={styles.cardHeader}>
-                  <h2 style={styles.jobTitle}>{job.title}</h2>
-                  <span
-                    style={{
-                      ...styles.badge,
-                      background: badge.bg,
-                      color: badge.text,
-                    }}
-                  >
-                    {job.level}
-                  </span>
+                  <h2 style={styles.jobTitle}>{job.title ?? "Untitled"}</h2>
+                  {level && (
+                    <span style={{ ...styles.badge, background: badge.bg, color: badge.text }}>
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </span>
+                  )}
                 </div>
-                <p style={styles.description}>{job.description}</p>
+                <p style={styles.description}>{job.description ?? "No description provided."}</p>
                 <button style={styles.applyButton}>Add Candidate</button>
               </div>
             );
@@ -131,16 +104,10 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     cursor: "pointer",
   },
-  title: {
-    margin: 0,
-    fontSize: "2rem",
-    color: "#1a1a2e",
-  },
-  subtitle: {
-    margin: "0.35rem 0 0",
-    color: "#6c757d",
-    fontSize: "0.95rem",
-  },
+  title: { margin: 0, fontSize: "2rem", color: "#1a1a2e" },
+  subtitle: { margin: "0.35rem 0 0", color: "#6c757d", fontSize: "0.95rem" },
+  error: { color: "#dc3545", fontSize: "0.9rem", marginBottom: "1rem" },
+  muted: { color: "#6c757d", fontSize: "0.95rem" },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",
@@ -161,12 +128,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "flex-start",
     gap: "0.5rem",
   },
-  jobTitle: {
-    margin: 0,
-    fontSize: "1.1rem",
-    color: "#1a1a2e",
-    fontWeight: 600,
-  },
+  jobTitle: { margin: 0, fontSize: "1.1rem", color: "#1a1a2e", fontWeight: 600 },
   badge: {
     flexShrink: 0,
     borderRadius: "999px",
