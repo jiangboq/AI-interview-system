@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { isLoggedIn, clearToken, authHeaders } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -41,7 +42,7 @@ export default function CreateInterviewPage() {
   const jobDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (localStorage.getItem("isAdmin") !== "true") {
+    if (!isLoggedIn()) {
       router.replace("/login");
     }
   }, [router]);
@@ -125,7 +126,7 @@ export default function CreateInterviewPage() {
     try {
       const res = await fetch(`${API_URL}/api/interviews`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
           candidate_id: selectedCandidate.id,
           job_id: selectedJob.id,
@@ -158,7 +159,7 @@ export default function CreateInterviewPage() {
   }
 
   function logout() {
-    localStorage.removeItem("isAdmin");
+    clearToken();
     router.push("/login");
   }
 

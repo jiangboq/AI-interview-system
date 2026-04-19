@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from controller.auth import router as auth_router
 from controller.candidates import router as candidates_router
 from controller.interviews import router as interviews_router
 from controller.jobs import router as jobs_router
@@ -16,6 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(jobs_router)
 app.include_router(candidates_router)
 app.include_router(interviews_router)

@@ -2,19 +2,41 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { setToken } from "@/lib/auth";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleLogin() {
-    if (username === "admin" && password === "admin") {
-      localStorage.setItem("isAdmin", "true");
+  async function handleLogin() {
+    if (!username.trim() || !password.trim()) {
+      setError("Please enter username and password.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail ?? "Invalid username or password.");
+      }
+      const { token } = await res.json();
+      setToken(token);
       router.push("/create_interview");
-    } else {
-      setError("Invalid username or password.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -34,7 +56,7 @@ export default function LoginPage() {
             style={styles.input}
             placeholder="Username"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => { setUsername(e.target.value); setError(""); }}
             onKeyDown={handleKeyDown}
             autoComplete="username"
           />
@@ -44,13 +66,17 @@ export default function LoginPage() {
             type="password"
             placeholder="Password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); setError(""); }}
             onKeyDown={handleKeyDown}
             autoComplete="current-password"
           />
           {error && <p style={styles.error}>{error}</p>}
-          <button style={styles.button} onClick={handleLogin}>
-            Login
+          <button
+            style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
+            onClick={handleLogin}
+            disabled={loading}
+          >
+            {loading ? "Logging in…" : "Login"}
           </button>
         </div>
       </div>
