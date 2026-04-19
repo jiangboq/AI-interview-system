@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from controller.candidates import router as candidates_router
 from controller.jobs import router as jobs_router
 
 app = FastAPI(title="AI Interview System API", version="0.1.0")
@@ -15,6 +16,7 @@ app.add_middleware(
 )
 
 app.include_router(jobs_router)
+app.include_router(candidates_router)
 
 
 class InterviewStartRequest(BaseModel):

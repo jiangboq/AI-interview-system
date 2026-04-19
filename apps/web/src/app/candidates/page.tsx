@@ -1,24 +1,32 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-interface Candidate {
-  id: number;
-  name: string;
-  email: string;
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const CANDIDATES: Candidate[] = [
-  { id: 1, name: "Alice Johnson", email: "alice.johnson@example.com" },
-  { id: 2, name: "Bob Martinez", email: "bob.martinez@example.com" },
-  { id: 3, name: "Clara Liu", email: "clara.liu@example.com" },
-  { id: 4, name: "David Kim", email: "david.kim@example.com" },
-  { id: 5, name: "Eva Rossi", email: "eva.rossi@example.com" },
-  { id: 6, name: "Frank Nguyen", email: "frank.nguyen@example.com" },
-];
+interface Candidate {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+}
 
 export default function CandidatesPage() {
   const router = useRouter();
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/candidates`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch candidates");
+        return res.json();
+      })
+      .then(setCandidates)
+      .catch(() => setError("Could not load candidates. Make sure the backend is running."))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <main style={styles.main}>
@@ -26,31 +34,41 @@ export default function CandidatesPage() {
         <div style={styles.header}>
           <div>
             <h1 style={styles.title}>Candidates</h1>
-            <p style={styles.subtitle}>{CANDIDATES.length} candidates total</p>
+            <p style={styles.subtitle}>
+              {loading ? "Loading…" : `${candidates.length} candidates total`}
+            </p>
           </div>
           <button style={styles.createButton} onClick={() => router.push("/create_candidate")}>
             Add Candidate
           </button>
         </div>
 
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Name</th>
-                <th style={styles.th}>Email</th>
-              </tr>
-            </thead>
-            <tbody>
-              {CANDIDATES.map((c, i) => (
-                <tr key={c.id} style={i % 2 === 0 ? styles.rowEven : styles.rowOdd}>
-                  <td style={styles.td}>{c.name}</td>
-                  <td style={{ ...styles.td, color: "#6c757d" }}>{c.email}</td>
+        {error && <p style={styles.error}>{error}</p>}
+
+        {!loading && !error && candidates.length === 0 && (
+          <p style={styles.muted}>No candidates yet.</p>
+        )}
+
+        {candidates.length > 0 && (
+          <div style={styles.tableWrapper}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Name</th>
+                  <th style={styles.th}>Email</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {candidates.map((c, i) => (
+                  <tr key={c.id} style={i % 2 === 0 ? styles.rowEven : styles.rowOdd}>
+                    <td style={styles.td}>{c.full_name ?? "—"}</td>
+                    <td style={{ ...styles.td, color: "#6c757d" }}>{c.email ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </main>
   );
@@ -73,6 +91,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: "2rem",
   },
   title: { margin: 0, fontSize: "2rem", color: "#1a1a2e" },
+  subtitle: { margin: "0.35rem 0 0", color: "#6c757d", fontSize: "0.95rem" },
   createButton: {
     padding: "0.6rem 1.2rem",
     borderRadius: "8px",
@@ -83,7 +102,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     cursor: "pointer",
   },
-  subtitle: { margin: "0.35rem 0 0", color: "#6c757d", fontSize: "0.95rem" },
+  error: { color: "#dc3545", fontSize: "0.9rem", marginBottom: "1rem" },
+  muted: { color: "#6c757d", fontSize: "0.95rem" },
   tableWrapper: {
     background: "#fff",
     borderRadius: "12px",
