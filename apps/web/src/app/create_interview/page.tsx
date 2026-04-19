@@ -1,9 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+interface Candidate {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+}
+
+interface Job {
+  id: string;
+  title: string | null;
+  level: string | null;
+}
 
 interface InterviewSession {
   session_id: string;
@@ -14,11 +26,19 @@ interface InterviewSession {
 
 export default function CreateInterviewPage() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [position, setPosition] = useState("");
+  const [candidateQuery, setCandidateQuery] = useState("");
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [showCandidateDropdown, setShowCandidateDropdown] = useState(false);
+  const [positionQuery, setPositionQuery] = useState("");
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [showJobDropdown, setShowJobDropdown] = useState(false);
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const candidateDropdownRef = useRef<HTMLDivElement>(null);
+  const jobDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (localStorage.getItem("isAdmin") !== "true") {
@@ -26,24 +46,104 @@ export default function CreateInterviewPage() {
     }
   }, [router]);
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (candidateDropdownRef.current && !candidateDropdownRef.current.contains(e.target as Node)) {
+        setShowCandidateDropdown(false);
+      }
+      if (jobDropdownRef.current && !jobDropdownRef.current.contains(e.target as Node)) {
+        setShowJobDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  async function fetchCandidates() {
+    if (candidates.length > 0) {
+      setShowCandidateDropdown(true);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/candidates`);
+      if (!res.ok) throw new Error();
+      const data: Candidate[] = await res.json();
+      setCandidates(data);
+      setShowCandidateDropdown(true);
+    } catch {
+      // silently fail — user can still type manually
+    }
+  }
+
+  function selectCandidate(c: Candidate) {
+    setSelectedCandidate(c);
+    setCandidateQuery(c.full_name ?? "");
+    setShowCandidateDropdown(false);
+  }
+
+  const filteredCandidates = candidateQuery
+    ? candidates.filter(
+        (c) =>
+          c.full_name?.toLowerCase().includes(candidateQuery.toLowerCase()) ||
+          c.email?.toLowerCase().includes(candidateQuery.toLowerCase())
+      )
+    : candidates;
+
+  async function fetchJobs() {
+    if (jobs.length > 0) {
+      setShowJobDropdown(true);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/jobs`);
+      if (!res.ok) throw new Error();
+      const data: Job[] = await res.json();
+      setJobs(data);
+      setShowJobDropdown(true);
+    } catch {
+      // silently fail — user can still type manually
+    }
+  }
+
+  function selectJob(j: Job) {
+    setSelectedJob(j);
+    setPositionQuery(j.title ?? "");
+    setShowJobDropdown(false);
+  }
+
+  const filteredJobs = positionQuery
+    ? jobs.filter((j) => j.title?.toLowerCase().includes(positionQuery.toLowerCase()))
+    : jobs;
+
   async function startInterview() {
-    if (!name.trim() || !position.trim()) {
-      setError("Please fill in both fields.");
+    if (!selectedCandidate || !selectedJob) {
+      setError("Please select a candidate and a position.");
       return;
     }
     setError("");
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/interview/start`, {
+      const res = await fetch(`${API_URL}/api/interviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ candidate_name: name, position }),
+        body: JSON.stringify({
+          candidate_id: selectedCandidate.id,
+          job_id: selectedJob.id,
+        }),
       });
-      if (!res.ok) throw new Error("API request failed");
-      const data: InterviewSession = await res.json();
-      setSession(data);
-    } catch {
-      setError("Failed to connect to the API. Make sure the backend is running.");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail ?? "Failed to create interview");
+      }
+      const data = await res.json();
+      setSession({
+        session_id: data.id,
+        candidate_name: selectedCandidate.full_name ?? "",
+        position: selectedJob.title ?? "",
+        first_question: "",
+      });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -51,8 +151,10 @@ export default function CreateInterviewPage() {
 
   function reset() {
     setSession(null);
-    setName("");
-    setPosition("");
+    setCandidateQuery("");
+    setSelectedCandidate(null);
+    setPositionQuery("");
+    setSelectedJob(null);
   }
 
   function logout() {
@@ -75,20 +177,76 @@ export default function CreateInterviewPage() {
 
         {!session ? (
           <div style={styles.form}>
-            <label style={styles.label}>Candidate Name</label>
-            <input
-              style={styles.input}
-              placeholder="e.g. Jane Smith"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <label style={styles.label}>Candidate</label>
+            <div style={styles.dropdownWrapper} ref={candidateDropdownRef}>
+              <input
+                style={styles.input}
+                placeholder="Search by name or email…"
+                value={candidateQuery}
+                onFocus={fetchCandidates}
+                onChange={(e) => {
+                  setCandidateQuery(e.target.value);
+                  setSelectedCandidate(null);
+                  setShowCandidateDropdown(true);
+                }}
+              />
+              {showCandidateDropdown && (
+                <div style={styles.dropdown}>
+                  {filteredCandidates.length === 0 ? (
+                    <div style={styles.dropdownEmpty}>No candidates found</div>
+                  ) : (
+                    filteredCandidates.map((c) => (
+                      <div
+                        key={c.id}
+                        style={styles.dropdownItem}
+                        onMouseDown={() => selectCandidate(c)}
+                      >
+                        <span style={styles.dropdownName}>{c.full_name ?? "—"}</span>
+                        <span style={styles.dropdownEmail}>{c.email ?? ""}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
             <label style={styles.label}>Position</label>
-            <input
-              style={styles.input}
-              placeholder="e.g. Senior Software Engineer"
-              value={position}
-              onChange={(e) => setPosition(e.target.value)}
-            />
+            <div style={styles.dropdownWrapper} ref={jobDropdownRef}>
+              <input
+                style={styles.input}
+                placeholder="Search by job title…"
+                value={positionQuery}
+                onFocus={fetchJobs}
+                onChange={(e) => {
+                  setPositionQuery(e.target.value);
+                  setSelectedJob(null);
+                  setShowJobDropdown(true);
+                }}
+              />
+              {showJobDropdown && (
+                <div style={styles.dropdown}>
+                  {filteredJobs.length === 0 ? (
+                    <div style={styles.dropdownEmpty}>No positions found</div>
+                  ) : (
+                    filteredJobs.map((j) => (
+                      <div
+                        key={j.id}
+                        style={styles.dropdownItem}
+                        onMouseDown={() => selectJob(j)}
+                      >
+                        <span style={styles.dropdownName}>{j.title ?? "—"}</span>
+                        {j.level && (
+                          <span style={styles.dropdownEmail}>
+                            {j.level.charAt(0).toUpperCase() + j.level.slice(1)}
+                          </span>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
             {error && <p style={styles.error}>{error}</p>}
             <button style={styles.button} onClick={startInterview} disabled={loading}>
               {loading ? "Creating…" : "Create Interview"}
@@ -96,15 +254,19 @@ export default function CreateInterviewPage() {
           </div>
         ) : (
           <div style={styles.sessionBox}>
-            <div style={styles.badge}>Session: {session.session_id}</div>
-            <h2 style={styles.questionLabel}>First Question</h2>
-            <p style={styles.question}>{session.first_question}</p>
+            <div style={styles.badge}>Interview Created</div>
+            <div style={styles.meta}>
+              <span><strong>ID:</strong> {session.session_id}</span>
+            </div>
             <div style={styles.meta}>
               <span><strong>Candidate:</strong> {session.candidate_name}</span>
               <span><strong>Role:</strong> {session.position}</span>
             </div>
+            <p style={styles.successNote}>
+              Interview record created with status <strong>new</strong>.
+            </p>
             <button style={{ ...styles.button, background: "#6c757d" }} onClick={reset}>
-              Start New Session
+              Create Another
             </button>
           </div>
         )}
@@ -148,13 +310,39 @@ const styles: Record<string, React.CSSProperties> = {
   },
   form: { display: "flex", flexDirection: "column", gap: "0.75rem" },
   label: { fontWeight: 600, fontSize: "0.875rem", color: "#333" },
+  dropdownWrapper: { position: "relative" },
   input: {
     padding: "0.65rem 0.85rem",
     borderRadius: "8px",
     border: "1px solid #dee2e6",
     fontSize: "1rem",
     outline: "none",
+    width: "100%",
+    boxSizing: "border-box",
   },
+  dropdown: {
+    position: "absolute",
+    top: "calc(100% + 4px)",
+    left: 0,
+    right: 0,
+    background: "#fff",
+    border: "1px solid #dee2e6",
+    borderRadius: "8px",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+    zIndex: 10,
+    maxHeight: "220px",
+    overflowY: "auto",
+  },
+  dropdownItem: {
+    display: "flex",
+    flexDirection: "column",
+    padding: "0.65rem 0.85rem",
+    cursor: "pointer",
+    borderBottom: "1px solid #f1f3f5",
+  },
+  dropdownName: { fontSize: "0.9rem", color: "#1a1a2e", fontWeight: 500 },
+  dropdownEmail: { fontSize: "0.8rem", color: "#6c757d", marginTop: "0.1rem" },
+  dropdownEmpty: { padding: "0.75rem 0.85rem", color: "#6c757d", fontSize: "0.9rem" },
   button: {
     marginTop: "0.5rem",
     padding: "0.75rem",
@@ -178,14 +366,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     alignSelf: "flex-start",
   },
-  questionLabel: { margin: 0, fontSize: "1rem", color: "#6c757d" },
-  question: {
+  successNote: {
     margin: 0,
-    fontSize: "1.1rem",
-    color: "#1a1a2e",
-    lineHeight: 1.6,
+    fontSize: "0.9rem",
+    color: "#495057",
     background: "#f8f9fa",
-    padding: "1rem",
+    padding: "0.75rem 1rem",
     borderRadius: "8px",
   },
   meta: {
