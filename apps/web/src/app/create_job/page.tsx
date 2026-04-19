@@ -3,19 +3,42 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const LEVELS = ["Junior", "Mid", "Senior", "Lead"] as const;
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+const LEVELS = ["junior", "mid", "senior", "staff"] as const;
 type Level = (typeof LEVELS)[number];
 
 export default function CreateJobPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [level, setLevel] = useState<Level>("Mid");
+  const [level, setLevel] = useState<Level>("mid");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit() {
-    if (!title.trim() || !description.trim()) return;
-    // TODO: wire up to API
-    router.push("/jobs");
+  async function handleSubmit() {
+    if (!title.trim() || !description.trim()) {
+      setError("Please fill in all fields.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/jobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, level }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail ?? "Failed to create job");
+      }
+      router.push("/jobs");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -37,7 +60,7 @@ export default function CreateJobPage() {
             style={styles.input}
             placeholder="e.g. Senior Software Engineer"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => { setTitle(e.target.value); setError(""); }}
           />
 
           <label style={styles.label}>Level</label>
@@ -48,7 +71,7 @@ export default function CreateJobPage() {
           >
             {LEVELS.map((l) => (
               <option key={l} value={l}>
-                {l}
+                {l.charAt(0).toUpperCase() + l.slice(1)}
               </option>
             ))}
           </select>
@@ -58,11 +81,13 @@ export default function CreateJobPage() {
             style={{ ...styles.input, ...styles.textarea }}
             placeholder="Describe the role, responsibilities, and requirements…"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => { setDescription(e.target.value); setError(""); }}
           />
 
-          <button style={styles.button} onClick={handleSubmit}>
-            Create Job
+          {error && <p style={styles.error}>{error}</p>}
+
+          <button style={{ ...styles.button, opacity: loading ? 0.7 : 1 }} onClick={handleSubmit} disabled={loading}>
+            {loading ? "Creating…" : "Create Job"}
           </button>
         </div>
       </div>
@@ -120,6 +145,7 @@ const styles: Record<string, React.CSSProperties> = {
     resize: "vertical",
     fontFamily: "inherit",
   },
+  error: { color: "#dc3545", fontSize: "0.875rem", margin: 0 },
   button: {
     marginTop: "0.5rem",
     padding: "0.75rem",
