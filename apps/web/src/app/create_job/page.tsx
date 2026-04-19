@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthGuard } from "@/lib/useAuthGuard";
+import { authHeaders } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -9,6 +11,7 @@ const LEVELS = ["junior", "mid", "senior", "staff"] as const;
 type Level = (typeof LEVELS)[number];
 
 export default function CreateJobPage() {
+  const ready = useAuthGuard();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -26,7 +29,7 @@ export default function CreateJobPage() {
     try {
       const res = await fetch(`${API_URL}/api/jobs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ title, description, level }),
       });
       if (!res.ok) {
@@ -40,6 +43,8 @@ export default function CreateJobPage() {
       setLoading(false);
     }
   }
+
+  if (!ready) return null;
 
   return (
     <main style={styles.main}>

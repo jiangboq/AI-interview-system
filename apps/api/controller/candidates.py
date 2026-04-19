@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from deps import require_auth
 from service import candidates as candidates_service
 
-router = APIRouter(prefix="/api/candidates", tags=["candidates"])
+router = APIRouter(prefix="/api/candidates", tags=["candidates"], dependencies=[Depends(require_auth)])
 
 
 class Candidate(BaseModel):

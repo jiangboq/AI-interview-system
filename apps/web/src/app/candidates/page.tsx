@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthGuard } from "@/lib/useAuthGuard";
+import { authHeaders } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -12,13 +14,15 @@ interface Candidate {
 }
 
 export default function CandidatesPage() {
+  const ready = useAuthGuard();
   const router = useRouter();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`${API_URL}/api/candidates`)
+    if (!ready) return;
+    fetch(`${API_URL}/api/candidates`, { headers: authHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch candidates");
         return res.json();
@@ -26,7 +30,9 @@ export default function CandidatesPage() {
       .then(setCandidates)
       .catch(() => setError("Could not load candidates. Make sure the backend is running."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [ready]);
+
+  if (!ready) return null;
 
   return (
     <main style={styles.main}>

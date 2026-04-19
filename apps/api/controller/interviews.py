@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from deps import require_auth
 from service import interviews as interviews_service
 
-router = APIRouter(prefix="/api/interviews", tags=["interviews"])
+router = APIRouter(prefix="/api/interviews", tags=["interviews"], dependencies=[Depends(require_auth)])
 
 
 class CreateInterviewRequest(BaseModel):

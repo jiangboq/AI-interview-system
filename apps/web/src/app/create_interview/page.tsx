@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { isLoggedIn, clearToken, authHeaders } from "@/lib/auth";
+import { clearToken, authHeaders } from "@/lib/auth";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -26,6 +27,7 @@ interface InterviewSession {
 }
 
 export default function CreateInterviewPage() {
+  const ready = useAuthGuard();
   const router = useRouter();
   const [candidateQuery, setCandidateQuery] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
@@ -41,11 +43,6 @@ export default function CreateInterviewPage() {
   const candidateDropdownRef = useRef<HTMLDivElement>(null);
   const jobDropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!isLoggedIn()) {
-      router.replace("/login");
-    }
-  }, [router]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -66,7 +63,7 @@ export default function CreateInterviewPage() {
       return;
     }
     try {
-      const res = await fetch(`${API_URL}/api/candidates`);
+      const res = await fetch(`${API_URL}/api/candidates`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       const data: Candidate[] = await res.json();
       setCandidates(data);
@@ -96,7 +93,7 @@ export default function CreateInterviewPage() {
       return;
     }
     try {
-      const res = await fetch(`${API_URL}/api/jobs`);
+      const res = await fetch(`${API_URL}/api/jobs`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       const data: Job[] = await res.json();
       setJobs(data);
@@ -162,6 +159,8 @@ export default function CreateInterviewPage() {
     clearToken();
     router.push("/login");
   }
+
+  if (!ready) return null;
 
   return (
     <main style={styles.main}>

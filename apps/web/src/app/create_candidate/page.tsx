@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthGuard } from "@/lib/useAuthGuard";
+import { authHeaders } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export default function CreateCandidatePage() {
+  const ready = useAuthGuard();
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -26,7 +29,7 @@ export default function CreateCandidatePage() {
     try {
       const res = await fetch(`${API_URL}/api/candidates`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ full_name: name, email }),
       });
       if (!res.ok) {
@@ -40,6 +43,8 @@ export default function CreateCandidatePage() {
       setLoading(false);
     }
   }
+
+  if (!ready) return null;
 
   return (
     <main style={styles.main}>

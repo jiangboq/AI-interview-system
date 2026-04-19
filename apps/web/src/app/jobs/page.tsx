@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthGuard } from "@/lib/useAuthGuard";
+import { authHeaders } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -20,13 +22,15 @@ interface Job {
 }
 
 export default function JobsPage() {
+  const ready = useAuthGuard();
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`${API_URL}/api/jobs`)
+    if (!ready) return;
+    fetch(`${API_URL}/api/jobs`, { headers: authHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch jobs");
         return res.json();
@@ -34,7 +38,9 @@ export default function JobsPage() {
       .then(setJobs)
       .catch(() => setError("Could not load jobs. Make sure the backend is running."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [ready]);
+
+  if (!ready) return null;
 
   return (
     <main style={styles.main}>
