@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
 export default function CreateCandidatePage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!name.trim() || !email.trim()) {
       setError("Please fill in both fields.");
       return;
@@ -18,8 +21,24 @@ export default function CreateCandidatePage() {
       setError("Please enter a valid email address.");
       return;
     }
-    // TODO: wire up to API
-    router.push("/candidates");
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/candidates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ full_name: name, email }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail ?? "Failed to create candidate");
+      }
+      router.push("/candidates");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -55,8 +74,12 @@ export default function CreateCandidatePage() {
 
           {error && <p style={styles.error}>{error}</p>}
 
-          <button style={styles.button} onClick={handleSubmit}>
-            Add Candidate
+          <button
+            style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? "Adding…" : "Add Candidate"}
           </button>
         </div>
       </div>
