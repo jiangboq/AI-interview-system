@@ -37,6 +37,7 @@ export default function CreateInterviewPage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showJobDropdown, setShowJobDropdown] = useState(false);
+  const [resume, setResume] = useState<File | null>(null);
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -153,6 +154,7 @@ export default function CreateInterviewPage() {
     setSelectedCandidate(null);
     setPositionQuery("");
     setSelectedJob(null);
+    setResume(null);
   }
 
   function logout() {
@@ -246,6 +248,29 @@ export default function CreateInterviewPage() {
                 </div>
               )}
             </div>
+
+            <label style={styles.label}>Resume <span style={styles.optional}>(optional)</span></label>
+            <label style={{ ...styles.uploadBox, ...(resume ? styles.uploadBoxFilled : {}) }}>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                style={{ display: "none" }}
+                onChange={(e) => setResume(e.target.files?.[0] ?? null)}
+              />
+              {resume ? (
+                <span style={styles.uploadFileName}>
+                  📄 {resume.name}
+                  <button
+                    style={styles.uploadClear}
+                    onClick={(e) => { e.preventDefault(); setResume(null); }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ) : (
+                <span style={styles.uploadPrompt}>Click to upload PDF, DOC, or DOCX</span>
+              )}
+            </label>
 
             {error && <p style={styles.error}>{error}</p>}
             <button style={styles.button} onClick={startInterview} disabled={loading}>
@@ -353,6 +378,36 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1rem",
     fontWeight: 600,
     cursor: "pointer",
+  },
+  optional: { fontWeight: 400, color: "#6c757d", fontSize: "0.8rem" },
+  uploadBox: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0.85rem",
+    borderRadius: "8px",
+    border: "2px dashed #dee2e6",
+    cursor: "pointer",
+    transition: "border-color 0.15s",
+  },
+  uploadBoxFilled: { borderColor: "#4f46e5", background: "#f5f3ff" },
+  uploadPrompt: { fontSize: "0.875rem", color: "#6c757d" },
+  uploadFileName: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    fontSize: "0.875rem",
+    color: "#4f46e5",
+    fontWeight: 500,
+  },
+  uploadClear: {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    color: "#6c757d",
+    fontSize: "0.8rem",
+    padding: "0 0.15rem",
+    lineHeight: 1,
   },
   error: { color: "#dc3545", fontSize: "0.875rem", margin: 0 },
   sessionBox: { display: "flex", flexDirection: "column", gap: "1rem" },
