@@ -29,10 +29,27 @@ export default function CreateCandidatePage() {
     setError("");
     setLoading(true);
     try {
+      let resume_url: string | null = null;
+      if (resume) {
+        const form = new FormData();
+        form.append("file", resume);
+        const uploadRes = await fetch(`${API_URL}/api/upload/resume`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: form,
+        });
+        if (!uploadRes.ok) {
+          const data = await uploadRes.json().catch(() => ({}));
+          throw new Error(data.detail ?? "Failed to upload resume");
+        }
+        const uploadData = await uploadRes.json();
+        resume_url = uploadData.url;
+      }
+
       const res = await fetch(`${API_URL}/api/candidates`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ full_name: name, email }),
+        body: JSON.stringify({ full_name: name, email, resume_url }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

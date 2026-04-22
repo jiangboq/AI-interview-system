@@ -11,6 +11,7 @@ interface Candidate {
   id: string;
   full_name: string | null;
   email: string | null;
+  resume_url: string | null;
 }
 
 export default function CandidatesPage() {
@@ -62,6 +63,7 @@ export default function CandidatesPage() {
                 <tr>
                   <th style={styles.th}>Name</th>
                   <th style={styles.th}>Email</th>
+                  <th style={styles.th}>Resume</th>
                 </tr>
               </thead>
               <tbody>
@@ -69,6 +71,19 @@ export default function CandidatesPage() {
                   <tr key={c.id} style={i % 2 === 0 ? styles.rowEven : styles.rowOdd}>
                     <td style={styles.td}>{c.full_name ?? "—"}</td>
                     <td style={{ ...styles.td, color: "#6c757d" }}>{c.email ?? "—"}</td>
+                    <td style={styles.td}>
+                      {c.resume_url ? (
+                        <a
+                          href={`${API_URL}${c.resume_url}`}
+                          download
+                          style={styles.resumeLink}
+                        >
+                          Download
+                        </a>
+                      ) : (
+                        <span style={{ color: "#adb5bd" }}>—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -139,4 +154,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   rowEven: { background: "#fff" },
   rowOdd: { background: "#fafafa" },
+  resumeLink: {
+    color: "#4f46e5",
+    fontWeight: 500,
+    fontSize: "0.875rem",
+    textDecoration: "none",
+  },
 };
