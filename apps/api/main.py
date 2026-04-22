@@ -1,11 +1,15 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from controller.auth import router as auth_router
 from controller.candidates import router as candidates_router
 from controller.interviews import router as interviews_router
 from controller.jobs import router as jobs_router
+from controller.upload import router as upload_router
 
 app = FastAPI(title="AI Interview System API", version="0.1.0")
 
@@ -21,6 +25,11 @@ app.include_router(auth_router)
 app.include_router(jobs_router)
 app.include_router(candidates_router)
 app.include_router(interviews_router)
+app.include_router(upload_router)
+
+_upload_dir = "uploads"
+os.makedirs(_upload_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=_upload_dir), name="uploads")
 
 
 class InterviewStartRequest(BaseModel):

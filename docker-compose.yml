@@ -119,6 +119,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-jiangboqiu}:${POSTGRES_PASSWORD:-admin}@postgres:5432/${POSTGRES_DB:-interview}
     ports:
       - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
     depends_on:
       - postgres
 

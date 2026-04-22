@@ -32,7 +32,7 @@ export default function LoginPage() {
       }
       const { token } = await res.json();
       setToken(token);
-      router.push("/create_interview");
+      router.push("/interviews");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
