@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { authHeaders } from "@/lib/auth";
 
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export default function CreateCandidatePage() {
@@ -12,6 +13,7 @@ export default function CreateCandidatePage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [resume, setResume] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -76,6 +78,29 @@ export default function CreateCandidatePage() {
             value={email}
             onChange={(e) => { setEmail(e.target.value); setError(""); }}
           />
+
+          <label style={styles.label}>Resume <span style={styles.optional}>(optional)</span></label>
+          <label style={{ ...styles.uploadBox, ...(resume ? styles.uploadBoxFilled : {}) }}>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              style={{ display: "none" }}
+              onChange={(e) => setResume(e.target.files?.[0] ?? null)}
+            />
+            {resume ? (
+              <span style={styles.uploadFileName}>
+                📄 {resume.name}
+                <button
+                  style={styles.uploadClear}
+                  onClick={(e) => { e.preventDefault(); setResume(null); }}
+                >
+                  ✕
+                </button>
+              </span>
+            ) : (
+              <span style={styles.uploadPrompt}>Click to upload PDF, DOC, or DOCX</span>
+            )}
+          </label>
 
           {error && <p style={styles.error}>{error}</p>}
 
@@ -148,5 +173,35 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1rem",
     fontWeight: 600,
     cursor: "pointer",
+  },
+  optional: { fontWeight: 400, color: "#6c757d", fontSize: "0.8rem" },
+  uploadBox: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0.85rem",
+    borderRadius: "8px",
+    border: "2px dashed #dee2e6",
+    cursor: "pointer",
+    transition: "border-color 0.15s",
+  },
+  uploadBoxFilled: { borderColor: "#4f46e5", background: "#f5f3ff" },
+  uploadPrompt: { fontSize: "0.875rem", color: "#6c757d" },
+  uploadFileName: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    fontSize: "0.875rem",
+    color: "#4f46e5",
+    fontWeight: 500,
+  },
+  uploadClear: {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    color: "#6c757d",
+    fontSize: "0.8rem",
+    padding: "0 0.15rem",
+    lineHeight: 1,
   },
 };
