@@ -143,6 +143,8 @@ CREATE TABLE interviews (
   recommendation TEXT,
   summary TEXT,
 
+  invite_token TEXT UNIQUE,
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
