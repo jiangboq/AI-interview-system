@@ -27,6 +27,7 @@ class Interview(BaseModel):
     status: str
     created_at: str
     invite_token: str
+    access_code: str
 
 
 class InterviewPublicInfo(BaseModel):
@@ -37,8 +38,9 @@ class InterviewPublicInfo(BaseModel):
     status: str | None
 
 
-class CandidateEmailRequest(BaseModel):
+class CandidateConfirmRequest(BaseModel):
     email: str
+    code: str
 
 
 @router.get("", response_model=list[InterviewRow], dependencies=[Depends(require_auth)])
@@ -66,10 +68,12 @@ def get_interview_by_token(token: str):
 
 
 @router.post("/invite/{token}/confirm")
-def confirm_candidate_email(token: str, req: CandidateEmailRequest):
+def confirm_candidate_email(token: str, req: CandidateConfirmRequest):
     interview = interviews_service.get_interview_by_token(token)
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
     if not req.email or "@" not in req.email:
         raise HTTPException(status_code=400, detail="Valid email is required")
+    if req.code != interview.get("access_code"):
+        raise HTTPException(status_code=400, detail="Invalid access code")
     return {"message": "Email confirmed", "interview_id": interview["id"]}
