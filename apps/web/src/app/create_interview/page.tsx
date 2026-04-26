@@ -21,9 +21,10 @@ interface Job {
 
 interface InterviewSession {
   session_id: string;
+  invite_token: string;
+  access_code: string;
   candidate_name: string;
   position: string;
-  first_question: string;
 }
 
 export default function CreateInterviewPage() {
@@ -40,6 +41,7 @@ export default function CreateInterviewPage() {
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
   const candidateDropdownRef = useRef<HTMLDivElement>(null);
   const jobDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -136,9 +138,10 @@ export default function CreateInterviewPage() {
       const data = await res.json();
       setSession({
         session_id: data.id,
+        invite_token: data.invite_token,
+        access_code: data.access_code,
         candidate_name: selectedCandidate.full_name ?? "",
         position: selectedJob.title ?? "",
-        first_question: "",
       });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -256,14 +259,46 @@ export default function CreateInterviewPage() {
           <div style={styles.sessionBox}>
             <div style={styles.badge}>Interview Created</div>
             <div style={styles.meta}>
-              <span><strong>ID:</strong> {session.session_id}</span>
-            </div>
-            <div style={styles.meta}>
               <span><strong>Candidate:</strong> {session.candidate_name}</span>
               <span><strong>Role:</strong> {session.position}</span>
             </div>
+            <div>
+              <p style={{ margin: "0 0 0.5rem", fontWeight: 600, fontSize: "0.875rem", color: "#333" }}>
+                Candidate invite link
+              </p>
+              <div style={styles.linkBox}>
+                <span style={styles.linkText}>
+                  {typeof window !== "undefined"
+                    ? `${window.location.origin}/interview/${session.invite_token}`
+                    : `/interview/${session.invite_token}`}
+                </span>
+                <button
+                  style={styles.copyButton}
+                  onClick={() => {
+                    const link = `${window.location.origin}/interview/${session.invite_token}`;
+                    navigator.clipboard.writeText(link).then(() => {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    });
+                  }}
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+            <div>
+              <p style={{ margin: "0 0 0.5rem", fontWeight: 600, fontSize: "0.875rem", color: "#333" }}>
+                Access code
+              </p>
+              <div style={styles.codeBox}>
+                <span style={styles.codeText}>{session.access_code}</span>
+              </div>
+              <p style={{ margin: "0.4rem 0 0", fontSize: "0.8rem", color: "#6c757d" }}>
+                Share this code with the candidate separately. They will need it to enter the interview.
+              </p>
+            </div>
             <p style={styles.successNote}>
-              Interview record created with status <strong>new</strong>.
+              Share the link and access code with the candidate. They must enter their email and the code to proceed.
             </p>
             <button style={{ ...styles.button, background: "#6c757d" }} onClick={reset}>
               Create Another
@@ -379,5 +414,47 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "1.5rem",
     fontSize: "0.875rem",
     color: "#495057",
+  },
+  linkBox: {
+    display: "flex",
+    alignItems: "center",
+    background: "#f8f9fa",
+    border: "1px solid #dee2e6",
+    borderRadius: "8px",
+    padding: "0.6rem 0.85rem",
+    gap: "0.75rem",
+  },
+  linkText: {
+    flex: 1,
+    fontSize: "0.8rem",
+    color: "#495057",
+    wordBreak: "break-all" as const,
+    fontFamily: "monospace",
+  },
+  copyButton: {
+    flexShrink: 0,
+    padding: "0.3rem 0.75rem",
+    borderRadius: "6px",
+    border: "1px solid #4f46e5",
+    background: "#fff",
+    color: "#4f46e5",
+    fontSize: "0.8rem",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  codeBox: {
+    display: "inline-flex",
+    alignItems: "center",
+    background: "#f0f4ff",
+    border: "1px solid #c7d2fe",
+    borderRadius: "8px",
+    padding: "0.5rem 1rem",
+  },
+  codeText: {
+    fontSize: "1.5rem",
+    fontWeight: 700,
+    color: "#4f46e5",
+    fontFamily: "monospace",
+    letterSpacing: "0.2em",
   },
 };
