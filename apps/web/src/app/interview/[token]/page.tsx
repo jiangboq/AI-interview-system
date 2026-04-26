@@ -22,6 +22,7 @@ export default function CandidateInterviewPage() {
   const [pageState, setPageState] = useState<PageState>("loading");
   const [interview, setInterview] = useState<InterviewInfo | null>(null);
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -51,12 +52,16 @@ export default function CandidateInterviewPage() {
       setFormError("Please enter a valid email address.");
       return;
     }
+    if (!code || code.length !== 8) {
+      setFormError("Please enter the 8-digit access code.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch(`${API_URL}/api/interviews/invite/${token}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, code }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -109,7 +114,7 @@ export default function CandidateInterviewPage() {
 
             <form onSubmit={handleSubmit} style={styles.form}>
               <label style={styles.label} htmlFor="email">
-                Enter your email to continue
+                Your email address
               </label>
               <input
                 id="email"
@@ -119,6 +124,19 @@ export default function CandidateInterviewPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoFocus
+              />
+              <label style={styles.label} htmlFor="code">
+                Access code
+              </label>
+              <input
+                id="code"
+                type="text"
+                inputMode="numeric"
+                maxLength={8}
+                style={styles.input}
+                placeholder="8-digit code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
               />
               {formError && <p style={styles.error}>{formError}</p>}
               <button type="submit" style={styles.button} disabled={submitting}>

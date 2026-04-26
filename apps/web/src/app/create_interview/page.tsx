@@ -22,6 +22,7 @@ interface Job {
 interface InterviewSession {
   session_id: string;
   invite_token: string;
+  access_code: string;
   candidate_name: string;
   position: string;
 }
@@ -138,6 +139,7 @@ export default function CreateInterviewPage() {
       setSession({
         session_id: data.id,
         invite_token: data.invite_token,
+        access_code: data.access_code,
         candidate_name: selectedCandidate.full_name ?? "",
         position: selectedJob.title ?? "",
       });
@@ -284,8 +286,19 @@ export default function CreateInterviewPage() {
                 </button>
               </div>
             </div>
+            <div>
+              <p style={{ margin: "0 0 0.5rem", fontWeight: 600, fontSize: "0.875rem", color: "#333" }}>
+                Access code
+              </p>
+              <div style={styles.codeBox}>
+                <span style={styles.codeText}>{session.access_code}</span>
+              </div>
+              <p style={{ margin: "0.4rem 0 0", fontSize: "0.8rem", color: "#6c757d" }}>
+                Share this code with the candidate separately. They will need it to enter the interview.
+              </p>
+            </div>
             <p style={styles.successNote}>
-              Share this link with the candidate. They will be asked to confirm their email before starting.
+              Share the link and access code with the candidate. They must enter their email and the code to proceed.
             </p>
             <button style={{ ...styles.button, background: "#6c757d" }} onClick={reset}>
               Create Another
@@ -428,5 +441,20 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.8rem",
     fontWeight: 600,
     cursor: "pointer",
+  },
+  codeBox: {
+    display: "inline-flex",
+    alignItems: "center",
+    background: "#f0f4ff",
+    border: "1px solid #c7d2fe",
+    borderRadius: "8px",
+    padding: "0.5rem 1rem",
+  },
+  codeText: {
+    fontSize: "1.5rem",
+    fontWeight: 700,
+    color: "#4f46e5",
+    fontFamily: "monospace",
+    letterSpacing: "0.2em",
   },
 };
