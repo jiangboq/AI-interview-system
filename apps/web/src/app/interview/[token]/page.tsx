@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { LiveKitRoom, RoomAudioRenderer, ControlBar } from "@livekit/components-react";
+import "@livekit/components-styles";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -13,7 +15,7 @@ interface InterviewInfo {
   status: string | null;
 }
 
-type PageState = "loading" | "not_found" | "email_form" | "confirmed" | "error";
+type PageState = "loading" | "not_found" | "email_form" | "confirmed" | "starting" | "interviewing" | "error";
 
 export default function CandidateInterviewPage() {
   const params = useParams();
@@ -25,6 +27,8 @@ export default function CandidateInterviewPage() {
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [livekitToken, setLivekitToken] = useState("");
+  const [livekitUrl, setLivekitUrl] = useState("");
 
   useEffect(() => {
     async function loadInterview() {
@@ -73,6 +77,44 @@ export default function CandidateInterviewPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function startInterview() {
+    setPageState("starting");
+    try {
+      const res = await fetch(`${API_URL}/api/livekit/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          room_name: token,
+          participant_name: email,
+          metadata: token,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to get interview token");
+      const data = await res.json();
+      setLivekitToken(data.token);
+      setLivekitUrl(process.env.NEXT_PUBLIC_LIVEKIT_URL ?? data.url);
+      setPageState("interviewing");
+    } catch {
+      setFormError("Failed to start interview. Please try again.");
+      setPageState("confirmed");
+    }
+  }
+
+  if (pageState === "interviewing" && livekitToken) {
+    return (
+      <LiveKitRoom
+        token={livekitToken}
+        serverUrl={livekitUrl}
+        audio={true}
+        video={false}
+        style={{ height: "100dvh" }}
+      >
+        <RoomAudioRenderer />
+        <InterviewRoomUI jobTitle={interview?.job_title ?? "your interview"} />
+      </LiveKitRoom>
+    );
   }
 
   return (
@@ -146,19 +188,114 @@ export default function CandidateInterviewPage() {
           </>
         )}
 
-        {pageState === "confirmed" && (
+        {(pageState === "confirmed" || pageState === "starting") && (
           <div style={styles.confirmedBox}>
             <div style={styles.checkmark}>✓</div>
             <h2 style={styles.confirmedHeading}>You&apos;re all set!</h2>
             <p style={styles.hint}>
-              Your email has been confirmed. The interview will begin shortly.
+              Your email has been confirmed. Click below when you are ready to begin.
             </p>
+            {formError && <p style={styles.error}>{formError}</p>}
+            <button
+              style={pageState === "starting" ? { ...styles.button, opacity: 0.7, cursor: "not-allowed" } : styles.button}
+              disabled={pageState === "starting"}
+              onClick={startInterview}
+            >
+              {pageState === "starting" ? "Starting…" : "Start Interview"}
+            </button>
           </div>
         )}
       </div>
     </main>
   );
 }
+
+function InterviewRoomUI({ jobTitle }: { jobTitle: string }) {
+  return (
+    <div style={roomStyles.container}>
+      <div style={roomStyles.header}>
+        <span style={roomStyles.brand}>AI Interview System</span>
+        <span style={roomStyles.jobLabel}>{jobTitle}</span>
+      </div>
+      <div style={roomStyles.body}>
+        <div style={roomStyles.agentAvatar}>
+          <span style={roomStyles.avatarIcon}>AI</span>
+        </div>
+        <p style={roomStyles.statusText}>Interview in progress</p>
+        <p style={roomStyles.subText}>Speak clearly — the AI interviewer is listening.</p>
+      </div>
+      <div style={roomStyles.footer}>
+        <ControlBar variation="minimal" controls={{ microphone: true, camera: false, screenShare: false, leave: true }} />
+      </div>
+    </div>
+  );
+}
+
+const roomStyles: Record<string, React.CSSProperties> = {
+  container: {
+    display: "flex",
+    flexDirection: "column",
+    height: "100dvh",
+    background: "#0f0f1a",
+    color: "#fff",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "1rem 1.5rem",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
+  },
+  brand: {
+    fontSize: "0.875rem",
+    fontWeight: 600,
+    color: "#9ca3af",
+  },
+  jobLabel: {
+    fontSize: "0.875rem",
+    fontWeight: 600,
+    color: "#c7d2fe",
+  },
+  body: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "1.25rem",
+  },
+  agentAvatar: {
+    width: "96px",
+    height: "96px",
+    borderRadius: "50%",
+    background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "1.25rem",
+    fontWeight: 700,
+    color: "#fff",
+    boxShadow: "0 0 32px rgba(79,70,229,0.5)",
+  },
+  avatarIcon: {},
+  statusText: {
+    margin: 0,
+    fontSize: "1.25rem",
+    fontWeight: 600,
+    color: "#f3f4f6",
+  },
+  subText: {
+    margin: 0,
+    fontSize: "0.9rem",
+    color: "#9ca3af",
+  },
+  footer: {
+    padding: "1.5rem",
+    display: "flex",
+    justifyContent: "center",
+    borderTop: "1px solid rgba(255,255,255,0.08)",
+  },
+};
 
 const styles: Record<string, React.CSSProperties> = {
   main: {
