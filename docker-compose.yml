@@ -1,5 +1,16 @@
 services:
   # ── Infrastructure ──────────────────────────────────────────────────────────
+  livekit:
+    image: livekit/livekit-server:latest
+    command: --config /etc/livekit.yaml
+    restart: unless-stopped
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    volumes:
+      - ./infra/docker/livekit/livekit.yaml:/etc/livekit.yaml:ro
+
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -117,12 +128,30 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-jiangboqiu}:${POSTGRES_PASSWORD:-admin}@postgres:5432/${POSTGRES_DB:-interview}
+      LIVEKIT_URL: ws://livekit:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-devsecret}
     ports:
       - "8000:8000"
     volumes:
       - ./uploads:/app/uploads
     depends_on:
       - postgres
+      - livekit
+
+  voice-agent:
+    build:
+      context: ./services/voice-agent
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./configs/dev.env
+    environment:
+      LIVEKIT_URL: ws://livekit:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-devsecret}
+    depends_on:
+      - livekit
 
   web:
     build:
