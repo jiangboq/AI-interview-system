@@ -1,3 +1,4 @@
+import json
 import logging
 
 from dotenv import load_dotenv
@@ -32,12 +33,22 @@ server = AgentServer()
 async def interview_agent(ctx: agents.JobContext):
     logger.info("Connecting to room: %s", ctx.room.name)
 
+    cfg = json.loads(ctx.job.metadata or "{}")
+    stt_cfg = cfg.get("stt", {})
+    llm_cfg = cfg.get("llm", {})
+    tts_cfg = cfg.get("tts", {})
+
     session = AgentSession(
-        stt=inference.STT(model="deepgram/nova-3", language="multi"),
-        llm=inference.LLM(model="anthropic/claude-haiku-4-5-20251001"),
+        stt=inference.STT(
+            model=stt_cfg.get("model", "deepgram/nova-3"),
+            language=stt_cfg.get("language", "multi"),
+        ),
+        llm=inference.LLM(
+            model=llm_cfg.get("model", "anthropic/claude-haiku-4-5-20251001"),
+        ),
         tts=inference.TTS(
-            model="cartesia/sonic-3",
-            voice="9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
+            model=tts_cfg.get("model", "cartesia/sonic-3"),
+            voice=tts_cfg.get("voice", "9626c31c-bec5-4cca-baa8-f8ba9e84c8bc"),
         ),
         vad=silero.VAD.load(),
         turn_handling=TurnHandlingOptions(
@@ -57,8 +68,10 @@ async def interview_agent(ctx: agents.JobContext):
         ),
     )
 
-    await session.generate_reply(
-        instructions="Greet the candidate warmly and ask them to introduce themselves."
+    await ctx.wait_for_participant()
+
+    await session.say(
+        "Welcome! I'm your AI interviewer today. Let's get started — please tell me a bit about yourself."
     )
 
 

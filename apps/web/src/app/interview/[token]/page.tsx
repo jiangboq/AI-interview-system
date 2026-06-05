@@ -81,8 +81,19 @@ export default function CandidateInterviewPage() {
 
   async function startInterview() {
     setPageState("starting");
+    setFormError("");
     try {
-      const res = await fetch(`${API_URL}/api/livekit/token`, {
+      const sessionRes = await fetch(`${API_URL}/api/livekit/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ room_name: token }),
+      });
+      if (!sessionRes.ok) {
+        const data = await sessionRes.json().catch(() => ({}));
+        throw new Error((data as { detail?: string }).detail ?? "Failed to create interview session");
+      }
+
+      const tokenRes = await fetch(`${API_URL}/api/livekit/token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -91,13 +102,13 @@ export default function CandidateInterviewPage() {
           metadata: token,
         }),
       });
-      if (!res.ok) throw new Error("Failed to get interview token");
-      const data = await res.json();
+      if (!tokenRes.ok) throw new Error("Failed to get interview token");
+      const data = await tokenRes.json();
       setLivekitToken(data.token);
       setLivekitUrl(process.env.NEXT_PUBLIC_LIVEKIT_URL ?? data.url);
       setPageState("interviewing");
-    } catch {
-      setFormError("Failed to start interview. Please try again.");
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Failed to start interview. Please try again.");
       setPageState("confirmed");
     }
   }
