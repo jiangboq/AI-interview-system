@@ -9,6 +9,7 @@ from controller.auth import router as auth_router
 from controller.candidates import router as candidates_router
 from controller.interviews import router as interviews_router
 from controller.jobs import router as jobs_router
+from controller.livekit import router as livekit_router
 from controller.upload import router as upload_router
 
 app = FastAPI(title="AI Interview System API", version="0.1.0")
@@ -25,6 +26,7 @@ app.include_router(auth_router)
 app.include_router(jobs_router)
 app.include_router(candidates_router)
 app.include_router(interviews_router)
+app.include_router(livekit_router)
 app.include_router(upload_router)
 
 _upload_dir = "uploads"

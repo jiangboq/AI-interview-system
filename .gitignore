@@ -1,2 +1,5 @@
 # Uploads
 uploads/
+
+# Environment secrets
+configs/dev.env
