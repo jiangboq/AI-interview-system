@@ -19,7 +19,7 @@ def insert_candidate(full_name: str, email: str, resume_url: str | None = None) 
                 """
                 INSERT INTO candidates (full_name, email, resume_url)
                 VALUES (%s, %s, %s)
-                RETURNING id::text, full_name, email
+                RETURNING id::text, full_name, email, resume_url
                 """,
                 (full_name, email, resume_url),
             )

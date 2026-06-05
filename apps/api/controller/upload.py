@@ -1,13 +1,14 @@
 import os
-import shutil
 import uuid
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
+from dao.resume_blobs import insert_resume_blob, update_blob_done, update_blob_failed, update_blob_processing
 from deps import require_auth
+from service.resume_parser import extract_text
 
 router = APIRouter(prefix="/api/upload", tags=["upload"], dependencies=[Depends(require_auth)])
 
@@ -22,13 +23,14 @@ _S3_PREFIX = os.getenv("AWS_S3_PREFIX", "resumes")
 
 class UploadResponse(BaseModel):
     url: str
+    blob_id: str
 
 
-def _upload_local(file: UploadFile, filename: str) -> str:
+def _upload_local(contents: bytes, filename: str) -> str:
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     path = os.path.join(UPLOAD_DIR, filename)
     with open(path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+        f.write(contents)
     return f"/uploads/{filename}"
 
 
@@ -47,8 +49,17 @@ def _upload_s3(file: UploadFile, filename: str) -> str:
     return f"https://{_S3_BUCKET}.s3.{_S3_REGION}.amazonaws.com/{key}"
 
 
+def _process_resume(blob_id: str, file_bytes: bytes, ext: str) -> None:
+    update_blob_processing(blob_id)
+    try:
+        raw_text = extract_text(file_bytes, ext)
+        update_blob_done(blob_id, raw_text)
+    except Exception as e:
+        update_blob_failed(blob_id, str(e))
+
+
 @router.post("/resume", response_model=UploadResponse)
-async def upload_resume(file: UploadFile = File(...)):
+async def upload_resume(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Only PDF, DOC, and DOCX files are allowed.")
@@ -56,13 +67,16 @@ async def upload_resume(file: UploadFile = File(...)):
     contents = await file.read()
     if len(contents) > MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail="File exceeds 10 MB limit.")
-    await file.seek(0)
 
     filename = f"{uuid.uuid4()}{ext}"
 
     if _S3_BUCKET:
+        await file.seek(0)
         url = _upload_s3(file, filename)
     else:
-        url = _upload_local(file, filename)
+        url = _upload_local(contents, filename)
 
-    return UploadResponse(url=url)
+    blob = insert_resume_blob(file_url=url, file_ext=ext)
+    background_tasks.add_task(_process_resume, blob["id"], contents, ext)
+
+    return UploadResponse(url=url, blob_id=blob["id"])
