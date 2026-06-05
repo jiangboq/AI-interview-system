@@ -1,0 +1,67 @@
+import psycopg2.extras
+
+from db import get_db
+
+
+def insert_resume_blob(file_url: str, file_ext: str) -> dict:
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO resume_blobs (file_url, file_ext, status)
+                VALUES (%s, %s, 'pending')
+                RETURNING id::text, file_url, file_ext, status, created_at
+                """,
+                (file_url, file_ext),
+            )
+            conn.commit()
+            return dict(cur.fetchone())
+
+
+def update_blob_processing(blob_id: str) -> None:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE resume_blobs SET status = 'processing', updated_at = NOW() WHERE id = %s",
+                (blob_id,),
+            )
+            conn.commit()
+
+
+def update_blob_done(blob_id: str, raw_text: str) -> None:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE resume_blobs
+                SET status = 'done', raw_text = %s, updated_at = NOW()
+                WHERE id = %s
+                """,
+                (raw_text, blob_id),
+            )
+            conn.commit()
+
+
+def update_blob_failed(blob_id: str, error: str) -> None:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE resume_blobs
+                SET status = 'failed', error = %s, updated_at = NOW()
+                WHERE id = %s
+                """,
+                (error, blob_id),
+            )
+            conn.commit()
+
+
+def fetch_blob_by_id(blob_id: str) -> dict | None:
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT id::text, file_url, file_ext, raw_text, status, error, created_at FROM resume_blobs WHERE id = %s",
+                (blob_id,),
+            )
+            row = cur.fetchone()
+            return dict(row) if row else None
