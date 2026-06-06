@@ -3,6 +3,44 @@ import psycopg2.extras
 from db import get_db
 
 
+def update_blob_parsing(blob_id: str) -> None:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE resume_blobs SET status = 'parsing', updated_at = NOW() WHERE id = %s",
+                (blob_id,),
+            )
+            conn.commit()
+
+
+def update_blob_parsed(blob_id: str, parsed_data: dict) -> None:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE resume_blobs
+                SET status = 'parsed', parsed_data = %s, updated_at = NOW()
+                WHERE id = %s
+                """,
+                (psycopg2.extras.Json(parsed_data), blob_id),
+            )
+            conn.commit()
+
+
+def update_blob_parse_failed(blob_id: str, error: str) -> None:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE resume_blobs
+                SET status = 'parse_failed', error = %s, updated_at = NOW()
+                WHERE id = %s
+                """,
+                (error, blob_id),
+            )
+            conn.commit()
+
+
 def insert_resume_blob(file_url: str, file_ext: str) -> dict:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -60,7 +98,7 @@ def fetch_blob_by_id(blob_id: str) -> dict | None:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
-                "SELECT id::text, file_url, file_ext, raw_text, status, error, created_at FROM resume_blobs WHERE id = %s",
+                "SELECT id::text, file_url, file_ext, raw_text, parsed_data, status, error, created_at FROM resume_blobs WHERE id = %s",
                 (blob_id,),
             )
             row = cur.fetchone()
