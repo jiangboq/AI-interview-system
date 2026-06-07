@@ -291,6 +291,7 @@ CREATE TABLE resume_blobs (
   file_url TEXT NOT NULL,
   file_ext TEXT,
   raw_text TEXT,
+  parsed_data JSONB,
   status TEXT NOT NULL DEFAULT 'pending',
   error TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -300,6 +301,7 @@ CREATE TABLE resume_blobs (
 CREATE INDEX idx_resume_blobs_file_url ON resume_blobs(file_url);
 CREATE INDEX idx_resume_blobs_candidate ON resume_blobs(candidate_id);
 CREATE INDEX idx_resume_blobs_status ON resume_blobs(status);
+CREATE INDEX idx_resume_blobs_parsed_data ON resume_blobs USING GIN (parsed_data);
 
 -- =========================================
 -- audit_events（非常关键）
