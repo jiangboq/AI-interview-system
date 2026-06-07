@@ -49,6 +49,19 @@ class ParsedResume(BaseModel):
     languages: list[str] = []
 
 
+def _close_schema(schema: dict) -> dict:
+    """Recursively set additionalProperties=false on all object nodes."""
+    if schema.get("type") == "object":
+        schema.setdefault("additionalProperties", False)
+    for key in ("properties", "$defs"):
+        if key in schema:
+            for v in schema[key].values():
+                _close_schema(v)
+    if "items" in schema:
+        _close_schema(schema["items"])
+    return schema
+
+
 def parse_resume(raw_text: str) -> ParsedResume:
     response = _client.messages.create(
         model="claude-opus-4-8",
@@ -64,10 +77,7 @@ def parse_resume(raw_text: str) -> ParsedResume:
         output_config={
             "format": {
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "parsed_resume",
-                    "schema": ParsedResume.model_json_schema(),
-                },
+                "schema": _close_schema(ParsedResume.model_json_schema()),
             }
         },
     )
