@@ -6,8 +6,17 @@ from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from dao.resume_blobs import insert_resume_blob, update_blob_done, update_blob_failed, update_blob_processing
+from dao.resume_blobs import (
+    insert_resume_blob,
+    update_blob_done,
+    update_blob_failed,
+    update_blob_parse_failed,
+    update_blob_parsed,
+    update_blob_parsing,
+    update_blob_processing,
+)
 from deps import require_auth
+from service.llm_resume_parser import parse_resume
 from service.resume_parser import extract_text
 
 router = APIRouter(prefix="/api/upload", tags=["upload"], dependencies=[Depends(require_auth)])
@@ -56,6 +65,14 @@ def _process_resume(blob_id: str, file_bytes: bytes, ext: str) -> None:
         update_blob_done(blob_id, raw_text)
     except Exception as e:
         update_blob_failed(blob_id, str(e))
+        return
+
+    update_blob_parsing(blob_id)
+    try:
+        parsed = parse_resume(raw_text)
+        update_blob_parsed(blob_id, parsed.model_dump())
+    except Exception as e:
+        update_blob_parse_failed(blob_id, str(e))
 
 
 @router.post("/resume", response_model=UploadResponse)
