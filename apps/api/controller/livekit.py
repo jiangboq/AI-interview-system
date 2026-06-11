@@ -51,11 +51,18 @@ class TTSConfig(BaseModel):
     voice: str = "9626c31c-bec5-4cca-baa8-f8ba9e84c8bc"
 
 
+class InterviewContext(BaseModel):
+    candidate_name: str | None = None
+    job_title: str | None = None
+    job_level: str | None = None
+
+
 class SessionRequest(BaseModel):
     room_name: str
     stt: STTConfig = STTConfig()
     llm: LLMConfig = LLMConfig()
     tts: TTSConfig = TTSConfig()
+    interview: InterviewContext = InterviewContext()
 
 
 class SessionResponse(BaseModel):
@@ -87,7 +94,6 @@ async def ensure_session(req: SessionRequest) -> SessionResponse:
     api_key, api_secret, ws_url, _public_url = _livekit_config()
     http_url = ws_url.replace("wss://", "https://").replace("ws://", "http://")
 
-    dispatched = False
     try:
         async with lkapi.LiveKitAPI(http_url, api_key, api_secret) as client:
             await client.room.create_room(
@@ -95,32 +101,22 @@ async def ensure_session(req: SessionRequest) -> SessionResponse:
             )
             logger.info("Room created or already exists: %s", req.room_name)
 
-            try:
-                list_resp = await client.agent_dispatch.list_dispatch(
-                    lkapi.ListAgentDispatchRequest(room=req.room_name)
+            session_metadata = json.dumps({
+                "stt": req.stt.model_dump(),
+                "llm": req.llm.model_dump(),
+                "tts": req.tts.model_dump(),
+                "interview": req.interview.model_dump(),
+            })
+            await client.agent_dispatch.create_dispatch(
+                lkapi.CreateAgentDispatchRequest(
+                    room=req.room_name,
+                    agent_name=AGENT_NAME,
+                    metadata=session_metadata,
                 )
-                if list_resp.agent_dispatches:
-                    logger.info("Agent already dispatched for room: %s", req.room_name)
-                    return SessionResponse(room_name=req.room_name, dispatched=False)
-
-                session_metadata = json.dumps({
-                    "stt": req.stt.model_dump(),
-                    "llm": req.llm.model_dump(),
-                    "tts": req.tts.model_dump(),
-                })
-                await client.agent_dispatch.create_dispatch(
-                    lkapi.CreateAgentDispatchRequest(
-                        room=req.room_name,
-                        agent_name=AGENT_NAME,
-                        metadata=session_metadata,
-                    )
-                )
-                dispatched = True
-                logger.info("Agent dispatched for room: %s", req.room_name)
-            except Exception as dispatch_err:
-                logger.warning("Agent dispatch failed for room %s: %s", req.room_name, dispatch_err)
+            )
+            logger.info("Agent dispatched for room: %s", req.room_name)
     except Exception as e:
-        logger.error("Failed to create room %s: %s", req.room_name, e)
+        logger.error("Failed to create room or dispatch agent for %s: %s", req.room_name, e)
         raise HTTPException(status_code=500, detail=str(e))
 
-    return SessionResponse(room_name=req.room_name, dispatched=dispatched)
+    return SessionResponse(room_name=req.room_name, dispatched=True)

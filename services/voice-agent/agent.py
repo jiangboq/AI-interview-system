@@ -10,20 +10,29 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 load_dotenv()
 logger = logging.getLogger("voice-agent")
 
-SYSTEM_PROMPT = """You are an AI interviewer conducting a professional job interview.
+BASE_SYSTEM_PROMPT = """You are an AI interviewer conducting a professional job interview.
 Your role is to:
 - Ask thoughtful, role-relevant questions one at a time
 - Listen carefully and follow up on interesting points
 - Evaluate communication skills and technical depth
 - Be encouraging but objective
-- Keep responses concise (2-3 sentences max) since this is a voice conversation
+- Keep responses concise (2-3 sentences max) since this is a voice conversation"""
 
-Start by greeting the candidate warmly and asking them to introduce themselves."""
+
+def build_system_prompt(candidate_name: str | None, job_title: str | None, job_level: str | None) -> str:
+    context_lines = []
+    if candidate_name:
+        context_lines.append(f"The candidate's name is {candidate_name}.")
+    if job_title:
+        level_str = f" ({job_level} level)" if job_level else ""
+        context_lines.append(f"They are interviewing for the position: {job_title}{level_str}.")
+    context = ("\n" + "\n".join(context_lines)) if context_lines else ""
+    return BASE_SYSTEM_PROMPT + context
 
 
 class InterviewAgent(Agent):
-    def __init__(self) -> None:
-        super().__init__(instructions=SYSTEM_PROMPT)
+    def __init__(self, system_prompt: str) -> None:
+        super().__init__(instructions=system_prompt)
 
 
 server = AgentServer()
@@ -37,6 +46,14 @@ async def interview_agent(ctx: agents.JobContext):
     stt_cfg = cfg.get("stt", {})
     llm_cfg = cfg.get("llm", {})
     tts_cfg = cfg.get("tts", {})
+    interview_cfg = cfg.get("interview", {})
+
+    candidate_name = interview_cfg.get("candidate_name")
+    job_title = interview_cfg.get("job_title")
+    job_level = interview_cfg.get("job_level")
+
+    system_prompt = build_system_prompt(candidate_name, job_title, job_level)
+    logger.info("Starting interview for candidate=%s job=%s level=%s", candidate_name, job_title, job_level)
 
     session = AgentSession(
         stt=inference.STT(
@@ -58,7 +75,7 @@ async def interview_agent(ctx: agents.JobContext):
 
     await session.start(
         room=ctx.room,
-        agent=InterviewAgent(),
+        agent=InterviewAgent(system_prompt),
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=ai_coustics.audio_enhancement(
@@ -70,8 +87,11 @@ async def interview_agent(ctx: agents.JobContext):
 
     await ctx.wait_for_participant()
 
+    greeting_name = f", {candidate_name}" if candidate_name else ""
+    greeting_job = f" for the {job_title} role" if job_title else ""
     await session.say(
-        "Welcome! I'm your AI interviewer today. Let's get started — please tell me a bit about yourself."
+        f"Hello{greeting_name}! Welcome to your AI interview{greeting_job}. "
+        "I'll be your interviewer today. When you're ready, please go ahead and introduce yourself."
     )
 
 
