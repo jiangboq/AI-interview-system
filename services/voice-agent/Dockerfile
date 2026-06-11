@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download Silero VAD model so the container starts faster
-RUN python -c "from livekit.plugins import silero; silero.VAD.load()" || true
+# Pre-download all required model files (Silero VAD, turn-detector, etc.)
+RUN python -m livekit.agents download-files || true
 
 COPY . .
 
