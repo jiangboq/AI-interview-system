@@ -1,11 +1,19 @@
+import asyncio
 import json
 import logging
+import os
+from datetime import datetime, timezone
 
+import httpx
 from dotenv import load_dotenv
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, inference, room_io, TurnHandlingOptions
+from livekit.agents.llm import ChatMessage
+from livekit.agents.voice.events import ConversationItemAddedEvent
 from livekit.plugins import ai_coustics, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
+
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 load_dotenv()
 logger = logging.getLogger("voice-agent")
@@ -43,6 +51,7 @@ async def interview_agent(ctx: agents.JobContext):
     logger.info("Connecting to room: %s", ctx.room.name)
 
     cfg = json.loads(ctx.job.metadata or "{}")
+    interview_id: str | None = cfg.get("interview_id")
     stt_cfg = cfg.get("stt", {})
     llm_cfg = cfg.get("llm", {})
     tts_cfg = cfg.get("tts", {})
@@ -72,6 +81,29 @@ async def interview_agent(ctx: agents.JobContext):
             turn_detection=MultilingualModel(),
         ),
     )
+
+    if interview_id:
+        async def _post_turn(speaker: str, text: str, timestamp: str) -> None:
+            try:
+                async with httpx.AsyncClient() as client:
+                    await client.post(
+                        f"{API_URL}/api/transcripts/{interview_id}/turns",
+                        json={"speaker": speaker, "text": text, "timestamp": timestamp},
+                        timeout=5,
+                    )
+            except Exception:
+                logger.warning("Failed to persist transcript turn for interview %s", interview_id)
+
+        @session.on("conversation_item_added")
+        def on_conversation_item_added(event: ConversationItemAddedEvent) -> None:
+            if not isinstance(event.item, ChatMessage):
+                return
+            text = event.item.text_content
+            if not text:
+                return
+            speaker = "agent" if event.item.role == "assistant" else "candidate"
+            timestamp = datetime.fromtimestamp(event.item.created_at, tz=timezone.utc).isoformat()
+            asyncio.ensure_future(_post_turn(speaker, text, timestamp))
 
     await session.start(
         room=ctx.room,

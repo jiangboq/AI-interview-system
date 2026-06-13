@@ -1,5 +1,15 @@
 services:
   # ── Infrastructure ──────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: interview
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
   livekit:
     image: livekit/livekit-server:latest
     command: --config /etc/livekit.yaml
@@ -130,6 +140,7 @@ services:
       - ./configs/dev.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-jiangboqiu}:${POSTGRES_PASSWORD:-admin}@postgres:5432/${POSTGRES_DB:-interview}
+      MONGO_URL: mongodb://mongo:27017
     ports:
       - "8000:8000"
     volumes:
@@ -159,4 +170,5 @@ services:
 
 volumes:
   postgres_data:
+  mongo_data:
   # redis_data:
