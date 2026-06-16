@@ -43,7 +43,7 @@ class STTConfig(BaseModel):
 
 
 class LLMConfig(BaseModel):
-    model: str = "anthropic/claude-haiku-4-5-20251001"
+    model: str = "gpt-4.1-mini"
 
 
 class TTSConfig(BaseModel):
@@ -59,6 +59,7 @@ class InterviewContext(BaseModel):
 
 class SessionRequest(BaseModel):
     room_name: str
+    interview_id: str | None = None
     stt: STTConfig = STTConfig()
     llm: LLMConfig = LLMConfig()
     tts: TTSConfig = TTSConfig()
@@ -102,6 +103,7 @@ async def ensure_session(req: SessionRequest) -> SessionResponse:
             logger.info("Room created or already exists: %s", req.room_name)
 
             session_metadata = json.dumps({
+                "interview_id": req.interview_id,
                 "stt": req.stt.model_dump(),
                 "llm": req.llm.model_dump(),
                 "tts": req.tts.model_dump(),

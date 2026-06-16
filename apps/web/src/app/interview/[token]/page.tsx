@@ -88,6 +88,7 @@ export default function CandidateInterviewPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           room_name: token,
+          interview_id: interview?.id ?? null,
           interview: {
             candidate_name: interview?.candidate_name ?? null,
             job_title: interview?.job_title ?? null,
