@@ -10,7 +10,7 @@ from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, inference, room_io, TurnHandlingOptions
 from livekit.agents.llm import ChatMessage
 from livekit.agents.voice.events import ConversationItemAddedEvent
-from livekit.plugins import ai_coustics, silero
+from livekit.plugins import ai_coustics, openai, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
@@ -69,8 +69,8 @@ async def interview_agent(ctx: agents.JobContext):
             model=stt_cfg.get("model", "deepgram/nova-3"),
             language=stt_cfg.get("language", "multi"),
         ),
-        llm=inference.LLM(
-            model=llm_cfg.get("model", "anthropic/claude-haiku-4-5-20251001"),
+        llm=openai.LLM(
+            model=llm_cfg.get("model", "gpt-4.1-mini"),
         ),
         tts=inference.TTS(
             model=tts_cfg.get("model", "cartesia/sonic-3"),
@@ -86,13 +86,14 @@ async def interview_agent(ctx: agents.JobContext):
         async def _post_turn(speaker: str, text: str, timestamp: str) -> None:
             try:
                 async with httpx.AsyncClient() as client:
-                    await client.post(
+                    resp = await client.post(
                         f"{API_URL}/api/transcripts/{interview_id}/turns",
                         json={"speaker": speaker, "text": text, "timestamp": timestamp},
                         timeout=5,
                     )
+                    resp.raise_for_status()
             except Exception:
-                logger.warning("Failed to persist transcript turn for interview %s", interview_id)
+                logger.exception("Failed to persist transcript turn for interview %s", interview_id)
 
         @session.on("conversation_item_added")
         def on_conversation_item_added(event: ConversationItemAddedEvent) -> None:

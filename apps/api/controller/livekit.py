@@ -43,7 +43,7 @@ class STTConfig(BaseModel):
 
 
 class LLMConfig(BaseModel):
-    model: str = "anthropic/claude-haiku-4-5-20251001"
+    model: str = "gpt-4.1-mini"
 
 
 class TTSConfig(BaseModel):
