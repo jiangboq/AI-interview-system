@@ -46,6 +46,42 @@ def insert_interview(candidate_id: str, job_id: str) -> dict:
             return dict(cur.fetchone())
 
 
+def fetch_interview(interview_id: str) -> dict | None:
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT
+                    i.id::text,
+                    i.status,
+                    c.full_name AS candidate_name,
+                    j.title     AS job_title,
+                    j.level     AS job_level
+                FROM interviews i
+                LEFT JOIN candidates c ON c.id = i.candidate_id
+                LEFT JOIN jobs      j ON j.id = i.job_id
+                WHERE i.id = %s
+                """,
+                (interview_id,),
+            )
+            row = cur.fetchone()
+            return dict(row) if row else None
+
+
+def mark_ended(interview_id: str) -> None:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE interviews
+                SET status = 'completed', ended_at = NOW(), updated_at = NOW()
+                WHERE id = %s
+                """,
+                (interview_id,),
+            )
+            conn.commit()
+
+
 def fetch_interview_by_token(token: str) -> dict | None:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:

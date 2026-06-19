@@ -106,17 +106,26 @@ async def interview_agent(ctx: agents.JobContext):
             timestamp = datetime.fromtimestamp(event.item.created_at, tz=timezone.utc).isoformat()
             asyncio.ensure_future(_post_turn(speaker, text, timestamp))
 
-    await session.start(
-        room=ctx.room,
-        agent=InterviewAgent(system_prompt),
-        room_options=room_io.RoomOptions(
-            audio_input=room_io.AudioInputOptions(
-                noise_cancellation=ai_coustics.audio_enhancement(
-                    model=ai_coustics.EnhancerModel.QUAIL_VF_L,
+    try:
+        await session.start(
+            room=ctx.room,
+            agent=InterviewAgent(system_prompt),
+            room_options=room_io.RoomOptions(
+                audio_input=room_io.AudioInputOptions(
+                    noise_cancellation=ai_coustics.audio_enhancement(
+                        model=ai_coustics.EnhancerModel.QUAIL_VF_L,
+                    ),
                 ),
             ),
-        ),
-    )
+        )
+    finally:
+        if interview_id:
+            try:
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(f"{API_URL}/api/interviews/{interview_id}/end", timeout=5)
+                    resp.raise_for_status()
+            except Exception:
+                logger.exception("Failed to mark interview %s as ended", interview_id)
 
     await ctx.wait_for_participant()
 

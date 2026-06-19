@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
 from deps import require_auth
@@ -43,6 +43,24 @@ class CandidateConfirmRequest(BaseModel):
     code: str
 
 
+class DimensionScore(BaseModel):
+    dimension_name: str
+    score: float
+    evidence: list[str]
+    rationale: str
+
+
+class ScoreCardResponse(BaseModel):
+    id: str
+    interview_id: str
+    overall_score: float
+    recommendation: str
+    strengths: list[str]
+    concerns: list[str]
+    dimensions: list[DimensionScore]
+    created_at: str
+
+
 @router.get("", response_model=list[InterviewRow], dependencies=[Depends(require_auth)])
 def list_interviews():
     try:
@@ -77,3 +95,18 @@ def confirm_candidate_email(token: str, req: CandidateConfirmRequest):
     if req.code != interview.get("access_code"):
         raise HTTPException(status_code=400, detail="Invalid access code")
     return {"message": "Email confirmed", "interview_id": interview["id"]}
+
+
+@router.post("/{interview_id}/end", status_code=202)
+def end_interview(interview_id: str, background_tasks: BackgroundTasks):
+    interviews_service.end_interview(interview_id)
+    background_tasks.add_task(interviews_service.score_interview, interview_id)
+    return {"message": "Interview ended, scoring in progress", "interview_id": interview_id}
+
+
+@router.get("/{interview_id}/scorecard", response_model=ScoreCardResponse, dependencies=[Depends(require_auth)])
+def get_scorecard(interview_id: str):
+    scorecard = interviews_service.get_scorecard(interview_id)
+    if not scorecard:
+        raise HTTPException(status_code=404, detail="Scorecard not found")
+    return scorecard
