@@ -20,6 +20,10 @@ def get_interview_by_token(token: str) -> dict | None:
     return interviews_dao.fetch_interview_by_token(token)
 
 
+def get_interview_detail(interview_id: str) -> dict | None:
+    return interviews_dao.fetch_interview_detail(interview_id)
+
+
 def end_interview(interview_id: str) -> None:
     interviews_dao.mark_ended(interview_id)
 

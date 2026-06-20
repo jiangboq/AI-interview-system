@@ -68,6 +68,34 @@ def fetch_interview(interview_id: str) -> dict | None:
             return dict(row) if row else None
 
 
+def fetch_interview_detail(interview_id: str) -> dict | None:
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT
+                    i.id::text,
+                    i.status,
+                    c.full_name   AS candidate_name,
+                    j.title       AS job_title,
+                    j.level       AS job_level,
+                    i.started_at::text,
+                    i.ended_at::text,
+                    i.final_score,
+                    i.recommendation,
+                    i.summary,
+                    i.created_at::text
+                FROM interviews i
+                LEFT JOIN candidates c ON c.id = i.candidate_id
+                LEFT JOIN jobs      j ON j.id = i.job_id
+                WHERE i.id = %s
+                """,
+                (interview_id,),
+            )
+            row = cur.fetchone()
+            return dict(row) if row else None
+
+
 def mark_ended(interview_id: str) -> None:
     with get_db() as conn:
         with conn.cursor() as cur:

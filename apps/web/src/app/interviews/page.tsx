@@ -83,7 +83,11 @@ export default function InterviewsPage() {
                     year: "numeric", month: "short", day: "numeric",
                   });
                   return (
-                    <tr key={iv.id} style={i % 2 === 0 ? styles.rowEven : styles.rowOdd}>
+                    <tr
+                      key={iv.id}
+                      style={{ ...(i % 2 === 0 ? styles.rowEven : styles.rowOdd), cursor: "pointer" }}
+                      onClick={() => router.push(`/interviews/${iv.id}`)}
+                    >
                       <td style={styles.td}>{iv.candidate_name ?? "—"}</td>
                       <td style={styles.td}>{iv.job_title ?? "—"}</td>
                       <td style={styles.td}>

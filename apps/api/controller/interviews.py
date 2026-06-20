@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
-from deps import require_auth
+from deps import require_admin, require_auth
 from service import interviews as interviews_service
 
 router = APIRouter(prefix="/api/interviews", tags=["interviews"])
@@ -28,6 +28,20 @@ class Interview(BaseModel):
     created_at: str
     invite_token: str
     access_code: str
+
+
+class InterviewDetail(BaseModel):
+    id: str
+    status: str | None
+    candidate_name: str | None
+    job_title: str | None
+    job_level: str | None
+    started_at: str | None
+    ended_at: str | None
+    final_score: float | None
+    recommendation: str | None
+    summary: str | None
+    created_at: str
 
 
 class InterviewPublicInfo(BaseModel):
@@ -104,7 +118,15 @@ def end_interview(interview_id: str, background_tasks: BackgroundTasks):
     return {"message": "Interview ended, scoring in progress", "interview_id": interview_id}
 
 
-@router.get("/{interview_id}/scorecard", response_model=ScoreCardResponse, dependencies=[Depends(require_auth)])
+@router.get("/{interview_id}", response_model=InterviewDetail, dependencies=[Depends(require_admin)])
+def get_interview_detail(interview_id: str):
+    interview = interviews_service.get_interview_detail(interview_id)
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+    return interview
+
+
+@router.get("/{interview_id}/scorecard", response_model=ScoreCardResponse, dependencies=[Depends(require_admin)])
 def get_scorecard(interview_id: str):
     scorecard = interviews_service.get_scorecard(interview_id)
     if not scorecard:
