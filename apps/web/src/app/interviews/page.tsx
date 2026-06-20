@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { authHeaders } from "@/lib/auth";
@@ -73,6 +74,7 @@ export default function InterviewsPage() {
                   <th style={styles.th}>Position</th>
                   <th style={styles.th}>Status</th>
                   <th style={styles.th}>Created</th>
+                  <th style={styles.th}>Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -92,6 +94,24 @@ export default function InterviewsPage() {
                         </span>
                       </td>
                       <td style={{ ...styles.td, color: "#6c757d" }}>{date}</td>
+                      <td style={styles.td}>
+                        <Link href={`/interviews/${iv.id}`} style={styles.detailsLink} aria-label="View details">
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="16" x2="12" y2="12" />
+                            <line x1="12" y1="8" x2="12.01" y2="8" />
+                          </svg>
+                        </Link>
+                      </td>
                     </tr>
                   );
                 })}
@@ -170,4 +190,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   rowEven: { background: "#fff" },
   rowOdd: { background: "#fafafa" },
+  detailsLink: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#4f46e5",
+  },
 };
