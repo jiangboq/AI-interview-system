@@ -1,4 +1,11 @@
+import logging
+
 from dao import interviews as interviews_dao
+from dao import scorecards as scorecards_dao
+from dao import transcripts as transcripts_dao
+from service import interview_scorer
+
+logger = logging.getLogger("interviews")
 
 
 def get_all_interviews() -> list[dict]:
@@ -11,3 +18,45 @@ def create_interview(candidate_id: str, job_id: str) -> dict:
 
 def get_interview_by_token(token: str) -> dict | None:
     return interviews_dao.fetch_interview_by_token(token)
+
+
+def end_interview(interview_id: str) -> None:
+    interviews_dao.mark_ended(interview_id)
+
+
+def get_scorecard(interview_id: str) -> dict | None:
+    return scorecards_dao.fetch_scorecard(interview_id)
+
+
+def score_interview(interview_id: str) -> None:
+    if scorecards_dao.fetch_scorecard(interview_id):
+        return
+
+    transcript = transcripts_dao.fetch_transcript(interview_id)
+    if not transcript or not transcript.get("turns"):
+        logger.warning("No transcript found for interview %s, skipping scoring", interview_id)
+        return
+
+    interview = interviews_dao.fetch_interview(interview_id)
+    if not interview:
+        logger.warning("No interview record found for %s, skipping scoring", interview_id)
+        return
+
+    try:
+        result = interview_scorer.score_interview(
+            transcript["turns"], interview.get("job_title"), interview.get("job_level")
+        )
+    except Exception:
+        logger.exception("Failed to score interview %s", interview_id)
+        return
+
+    scorecards_dao.insert_scorecard(
+        interview_id=interview_id,
+        overall_score=result.overall_score,
+        recommendation=result.recommendation,
+        summary=result.summary,
+        strengths=result.strengths,
+        concerns=result.concerns,
+        dimensions=[d.model_dump() for d in result.dimensions],
+        raw_evaluation=result.model_dump(),
+    )
