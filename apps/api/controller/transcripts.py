@@ -13,6 +13,7 @@ class TurnRequest(BaseModel):
     speaker: str
     text: str
     timestamp: str | None = None
+    section: str | None = None
 
 
 class TurnResponse(BaseModel):
@@ -20,16 +21,19 @@ class TurnResponse(BaseModel):
     speaker: str
     text: str
     timestamp: str
+    section: str | None = None
 
 
 @router.post("/{interview_id}/turns", response_model=TurnResponse, status_code=201)
 def append_turn(interview_id: str, req: TurnRequest):
     timestamp = req.timestamp or datetime.now(timezone.utc).isoformat()
     try:
-        transcripts_dao.append_turn(interview_id, req.speaker, req.text, timestamp)
+        transcripts_dao.append_turn(interview_id, req.speaker, req.text, timestamp, req.section)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    return TurnResponse(interview_id=interview_id, speaker=req.speaker, text=req.text, timestamp=timestamp)
+    return TurnResponse(
+        interview_id=interview_id, speaker=req.speaker, text=req.text, timestamp=timestamp, section=req.section
+    )
 
 
 @router.get("/{interview_id}", dependencies=[Depends(require_auth)])

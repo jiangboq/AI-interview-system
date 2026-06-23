@@ -118,6 +118,14 @@ def end_interview(interview_id: str, background_tasks: BackgroundTasks):
     return {"message": "Interview ended, scoring in progress", "interview_id": interview_id}
 
 
+@router.get("/{interview_id}/resume")
+def get_interview_resume(interview_id: str):
+    resume = interviews_service.get_interview_resume(interview_id)
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    return resume
+
+
 @router.get("/{interview_id}", response_model=InterviewDetail, dependencies=[Depends(require_admin)])
 def get_interview_detail(interview_id: str):
     interview = interviews_service.get_interview_detail(interview_id)

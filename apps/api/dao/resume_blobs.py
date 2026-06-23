@@ -94,6 +94,24 @@ def update_blob_failed(blob_id: str, error: str) -> None:
             conn.commit()
 
 
+def fetch_latest_parsed_blob_for_interview(interview_id: str) -> dict | None:
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT rb.id::text, rb.file_url, rb.parsed_data, rb.created_at
+                FROM resume_blobs rb
+                JOIN interviews i ON i.candidate_id = rb.candidate_id
+                WHERE i.id = %s AND rb.status = 'parsed'
+                ORDER BY rb.created_at DESC
+                LIMIT 1
+                """,
+                (interview_id,),
+            )
+            row = cur.fetchone()
+            return dict(row) if row else None
+
+
 def fetch_blob_by_id(blob_id: str) -> dict | None:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
