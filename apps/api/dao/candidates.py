@@ -24,4 +24,17 @@ def insert_candidate(full_name: str, email: str, resume_url: str | None = None) 
                 (full_name, email, resume_url),
             )
             conn.commit()
-            return dict(cur.fetchone())
+            candidate = dict(cur.fetchone())
+
+            if resume_url:
+                cur.execute(
+                    """
+                    UPDATE resume_blobs
+                    SET candidate_id = %s, updated_at = NOW()
+                    WHERE file_url = %s AND candidate_id IS NULL
+                    """,
+                    (candidate["id"], resume_url),
+                )
+                conn.commit()
+
+            return candidate

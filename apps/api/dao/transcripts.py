@@ -12,8 +12,8 @@ def _collection():
     return col
 
 
-def append_turn(interview_id: str, speaker: str, text: str, timestamp: str) -> None:
-    turn = {"speaker": speaker, "text": text, "timestamp": timestamp}
+def append_turn(interview_id: str, speaker: str, text: str, timestamp: str, section: str | None = None) -> None:
+    turn = {"speaker": speaker, "text": text, "timestamp": timestamp, "section": section}
     now = datetime.now(timezone.utc).isoformat()
     _collection().update_one(
         {"interview_id": interview_id},

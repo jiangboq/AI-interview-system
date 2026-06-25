@@ -1,6 +1,7 @@
 import logging
 
 from dao import interviews as interviews_dao
+from dao import resume_blobs as resume_blobs_dao
 from dao import scorecards as scorecards_dao
 from dao import transcripts as transcripts_dao
 from service import interview_scorer
@@ -20,8 +21,17 @@ def get_interview_by_token(token: str) -> dict | None:
     return interviews_dao.fetch_interview_by_token(token)
 
 
+def get_interview_detail(interview_id: str) -> dict | None:
+    return interviews_dao.fetch_interview_detail(interview_id)
+
+
 def end_interview(interview_id: str) -> None:
     interviews_dao.mark_ended(interview_id)
+
+
+def get_interview_resume(interview_id: str) -> dict | None:
+    blob = resume_blobs_dao.fetch_latest_parsed_blob_for_interview(interview_id)
+    return blob["parsed_data"] if blob else None
 
 
 def get_scorecard(interview_id: str) -> dict | None:
