@@ -4,6 +4,8 @@ import re
 import pdfplumber
 from docx import Document
 
+
+# Using Regex-based PII removal and will be replaced with a more advanced approach later.
 _PII_PATTERNS: list[tuple[re.Pattern, str]] = [
     # Email addresses
     (re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b"), "[EMAIL]"),
