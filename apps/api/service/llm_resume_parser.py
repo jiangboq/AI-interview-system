@@ -1,10 +1,9 @@
-import json
 import os
 
-from anthropic import Anthropic
+from openai import OpenAI
 from pydantic import BaseModel
 
-_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 _SYSTEM_PROMPT = (
     "You are a resume parser. Extract all information from the resume text into the required JSON structure. "
@@ -49,38 +48,13 @@ class ParsedResume(BaseModel):
     languages: list[str] = []
 
 
-def _close_schema(schema: dict) -> dict:
-    """Recursively set additionalProperties=false on all object nodes."""
-    if schema.get("type") == "object":
-        schema.setdefault("additionalProperties", False)
-    for key in ("properties", "$defs"):
-        if key in schema:
-            for v in schema[key].values():
-                _close_schema(v)
-    if "items" in schema:
-        _close_schema(schema["items"])
-    return schema
-
-
 def parse_resume(raw_text: str) -> ParsedResume:
-    response = _client.messages.create(
-        model="claude-opus-4-8",
-        max_tokens=8192,
-        thinking={"type": "adaptive"},
-        system=_SYSTEM_PROMPT,
+    response = _client.beta.chat.completions.parse(
+        model="gpt-4o",
         messages=[
-            {
-                "role": "user",
-                "content": f"<resume_text>\n{raw_text}\n</resume_text>",
-            }
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user", "content": f"<resume_text>\n{raw_text}\n</resume_text>"},
         ],
-        output_config={
-            "format": {
-                "type": "json_schema",
-                "schema": _close_schema(ParsedResume.model_json_schema()),
-            }
-        },
+        response_format=ParsedResume,
     )
-
-    text = next(block.text for block in response.content if block.type == "text")
-    return ParsedResume.model_validate(json.loads(text))
+    return response.choices[0].message.parsed
