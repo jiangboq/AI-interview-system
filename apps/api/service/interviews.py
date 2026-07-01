@@ -1,4 +1,5 @@
 import logging
+import os
 
 from dao import interviews as interviews_dao
 from dao import resume_blobs as resume_blobs_dao
@@ -46,7 +47,8 @@ def _fetch_calibration_scorecards(turns: list[dict], job_id: str | None) -> list
     try:
         transcript_text = " ".join(t["text"] for t in turns)
         embedding = embeddings_service.generate_embedding(transcript_text)
-        return scorecard_embeddings_dao.fetch_similar_scorecards(job_id, embedding, k=5)
+        k = int(os.getenv("RAG_CALIBRATION_K", "3"))
+        return scorecard_embeddings_dao.fetch_similar_scorecards(job_id, embedding, k=k)
     except Exception:
         logger.exception("Failed to fetch calibration scorecards for job %s", job_id)
         return []
@@ -56,6 +58,7 @@ def _store_scorecard_embedding(
     scorecard_id: str, job_id: str | None, scorecard, interview: dict
 ) -> None:
     if not job_id:
+        logger.debug("Skipping scorecard embedding for %s: interview has no job_id", scorecard_id)
         return
     try:
         text = embeddings_service.scorecard_text(
