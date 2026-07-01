@@ -53,6 +53,7 @@ def fetch_interview(interview_id: str) -> dict | None:
                 """
                 SELECT
                     i.id::text,
+                    i.job_id::text,
                     i.status,
                     c.full_name AS candidate_name,
                     j.title     AS job_title,

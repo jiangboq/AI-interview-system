@@ -22,7 +22,7 @@ services:
       - ./infra/docker/livekit/livekit.yaml:/etc/livekit.yaml:ro
 
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-jiangboqiu}
