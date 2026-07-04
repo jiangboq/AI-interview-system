@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { authHeaders } from "@/lib/auth";
 
@@ -14,6 +15,7 @@ interface Organization {
 
 export default function OrganizationsPage() {
   const ready = useAuthGuard();
+  const router = useRouter();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -42,6 +44,9 @@ export default function OrganizationsPage() {
               {loading ? "Loading…" : `${organizations.length} organizations total`}
             </p>
           </div>
+          <button style={styles.createButton} onClick={() => router.push("/create_organization")}>
+            Create Organization
+          </button>
         </div>
 
         {error && <p style={styles.error}>{error}</p>}
@@ -95,6 +100,16 @@ const styles: Record<string, React.CSSProperties> = {
   },
   title: { margin: 0, fontSize: "2rem", color: "#1a1a2e" },
   subtitle: { margin: "0.35rem 0 0", color: "#6c757d", fontSize: "0.95rem" },
+  createButton: {
+    padding: "0.6rem 1.2rem",
+    borderRadius: "8px",
+    border: "none",
+    background: "#4f46e5",
+    color: "#fff",
+    fontSize: "0.9rem",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
   error: { color: "#dc3545", fontSize: "0.9rem", marginBottom: "1rem" },
   muted: { color: "#6c757d", fontSize: "0.95rem" },
   tableWrapper: {
