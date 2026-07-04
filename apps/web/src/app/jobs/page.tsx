@@ -74,7 +74,9 @@ export default function JobsPage() {
                   )}
                 </div>
                 <p style={styles.description}>{job.description ?? "No description provided."}</p>
-                <button style={styles.applyButton}>Add Candidate</button>
+                <button style={styles.applyButton} onClick={() => router.push("/create_interview")}>
+                  Create Interview
+                </button>
               </div>
             );
           })}
