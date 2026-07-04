@@ -21,12 +21,14 @@ class Job(BaseModel):
     title: str | None
     description: str | None
     level: str | None
+    organization_id: str | None
 
 
 class CreateJobRequest(BaseModel):
     title: str
     description: str
     level: JobLevel
+    organization_id: str
 
 
 @router.get("", response_model=list[Job])
@@ -40,6 +42,6 @@ def list_jobs():
 @router.post("", response_model=Job, status_code=201)
 def create_job(req: CreateJobRequest):
     try:
-        return jobs_service.create_job(req.title, req.description, req.level.value)
+        return jobs_service.create_job(req.title, req.description, req.level.value, req.organization_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
