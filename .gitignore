@@ -3,3 +3,10 @@ uploads/
 
 # Environment secrets
 configs/dev.env
+
+# Node.js / Next.js
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
