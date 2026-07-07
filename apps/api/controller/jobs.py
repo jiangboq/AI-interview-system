@@ -22,6 +22,7 @@ class Job(BaseModel):
     description: str | None
     level: str | None
     organization_id: str | None
+    organization_name: str | None
 
 
 class CreateJobRequest(BaseModel):
