@@ -7,7 +7,13 @@ def fetch_all_jobs() -> list[dict]:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
-                "SELECT id::text, title, description, level, organization_id::text FROM jobs ORDER BY created_at DESC"
+                """
+                SELECT j.id::text, j.title, j.description, j.level,
+                       j.organization_id::text, o.name AS organization_name
+                FROM jobs j
+                LEFT JOIN organizations o ON o.id = j.organization_id
+                ORDER BY o.name NULLS LAST, j.created_at DESC
+                """
             )
             return [dict(row) for row in cur.fetchall()]
 

@@ -19,6 +19,18 @@ interface Job {
   title: string | null;
   description: string | null;
   level: string | null;
+  organization_id: string | null;
+  organization_name: string | null;
+}
+
+function groupJobsByOrganization(jobs: Job[]): { organizationName: string; jobs: Job[] }[] {
+  const groups = new Map<string, Job[]>();
+  for (const job of jobs) {
+    const name = job.organization_name ?? "Unaffiliated";
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name)!.push(job);
+  }
+  return Array.from(groups.entries()).map(([organizationName, jobs]) => ({ organizationName, jobs }));
 }
 
 export default function JobsPage() {
@@ -59,28 +71,33 @@ export default function JobsPage() {
 
         {loading && !error && <p style={styles.muted}>Loading jobs…</p>}
 
-        <div style={styles.grid}>
-          {jobs.map((job) => {
-            const level = job.level ?? "";
-            const badge = LEVEL_COLORS[level] ?? { bg: "#e9ecef", text: "#495057" };
-            return (
-              <div key={job.id} style={styles.card}>
-                <div style={styles.cardHeader}>
-                  <h2 style={styles.jobTitle}>{job.title ?? "Untitled"}</h2>
-                  {level && (
-                    <span style={{ ...styles.badge, background: badge.bg, color: badge.text }}>
-                      {level.charAt(0).toUpperCase() + level.slice(1)}
-                    </span>
-                  )}
-                </div>
-                <p style={styles.description}>{job.description ?? "No description provided."}</p>
-                <button style={styles.applyButton} onClick={() => router.push("/create_interview")}>
-                  Create Interview
-                </button>
-              </div>
-            );
-          })}
-        </div>
+        {groupJobsByOrganization(jobs).map((group) => (
+          <section key={group.organizationName} style={styles.orgSection}>
+            <h2 style={styles.orgTitle}>{group.organizationName}</h2>
+            <div style={styles.grid}>
+              {group.jobs.map((job) => {
+                const level = job.level ?? "";
+                const badge = LEVEL_COLORS[level] ?? { bg: "#e9ecef", text: "#495057" };
+                return (
+                  <div key={job.id} style={styles.card}>
+                    <div style={styles.cardHeader}>
+                      <h3 style={styles.jobTitle}>{job.title ?? "Untitled"}</h3>
+                      {level && (
+                        <span style={{ ...styles.badge, background: badge.bg, color: badge.text }}>
+                          {level.charAt(0).toUpperCase() + level.slice(1)}
+                        </span>
+                      )}
+                    </div>
+                    <p style={styles.description}>{job.description ?? "No description provided."}</p>
+                    <button style={styles.applyButton} onClick={() => router.push("/create_interview")}>
+                      Create Interview
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
     </main>
   );
@@ -116,6 +133,15 @@ const styles: Record<string, React.CSSProperties> = {
   subtitle: { margin: "0.35rem 0 0", color: "#6c757d", fontSize: "0.95rem" },
   error: { color: "#dc3545", fontSize: "0.9rem", marginBottom: "1rem" },
   muted: { color: "#6c757d", fontSize: "0.95rem" },
+  orgSection: { marginBottom: "2rem" },
+  orgTitle: {
+    margin: "0 0 1rem",
+    fontSize: "1.25rem",
+    color: "#1a1a2e",
+    fontWeight: 700,
+    paddingBottom: "0.5rem",
+    borderBottom: "1px solid #e9ecef",
+  },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))",
