@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { authHeaders } from "@/lib/auth";
@@ -10,18 +10,43 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const LEVELS = ["junior", "mid", "senior", "staff"] as const;
 type Level = (typeof LEVELS)[number];
 
+interface Organization {
+  id: string;
+  name: string | null;
+}
+
 export default function CreateJobPage() {
   const ready = useAuthGuard();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [level, setLevel] = useState<Level>("mid");
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizationId, setOrganizationId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!ready) return;
+    fetch(`${API_URL}/api/organizations`, { headers: authHeaders() })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch organizations");
+        return res.json();
+      })
+      .then((data: Organization[]) => {
+        setOrganizations(data);
+        if (data.length > 0) setOrganizationId(data[0].id);
+      })
+      .catch(() => setError("Could not load organizations. Make sure the backend is running."));
+  }, [ready]);
 
   async function handleSubmit() {
     if (!title.trim() || !description.trim()) {
       setError("Please fill in all fields.");
+      return;
+    }
+    if (!organizationId) {
+      setError("Please select an organization.");
       return;
     }
     setError("");
@@ -30,7 +55,7 @@ export default function CreateJobPage() {
       const res = await fetch(`${API_URL}/api/jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ title, description, level }),
+        body: JSON.stringify({ title, description, level, organization_id: organizationId }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -67,6 +92,20 @@ export default function CreateJobPage() {
             value={title}
             onChange={(e) => { setTitle(e.target.value); setError(""); }}
           />
+
+          <label style={styles.label}>Organization</label>
+          <select
+            style={styles.input}
+            value={organizationId}
+            onChange={(e) => { setOrganizationId(e.target.value); setError(""); }}
+          >
+            {organizations.length === 0 && <option value="">No organizations available</option>}
+            {organizations.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name ?? o.id}
+              </option>
+            ))}
+          </select>
 
           <label style={styles.label}>Level</label>
           <select

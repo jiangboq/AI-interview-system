@@ -3,6 +3,7 @@
 -- =========================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS vector;
 
 -- =========================================
 -- users
@@ -252,6 +253,20 @@ CREATE TABLE scorecard_dimensions (
 );
 
 CREATE INDEX idx_scorecard_dimensions ON scorecard_dimensions(scorecard_id);
+
+-- =========================================
+-- scorecard_embeddings
+-- =========================================
+CREATE TABLE scorecard_embeddings (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  scorecard_id UUID NOT NULL REFERENCES scorecards(id) ON DELETE CASCADE,
+  job_id       UUID NOT NULL REFERENCES jobs(id),
+  embedding    VECTOR(1536),
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_scorecard_embeddings_job ON scorecard_embeddings(job_id);
+CREATE INDEX idx_scorecard_embeddings_vec ON scorecard_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 -- =========================================
 -- scorecard_question_scores

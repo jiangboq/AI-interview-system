@@ -11,13 +11,13 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_MINUTES = 60
 
 
-def _hash_password(password: str) -> str:
+def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
 def login(username: str, password: str) -> str:
     user = users_dao.fetch_user_by_username(username)
-    if not user or user["password_hash"] != _hash_password(password):
+    if not user or user["password_hash"] != hash_password(password):
         raise ValueError("Invalid username or password")
 
     payload = {
