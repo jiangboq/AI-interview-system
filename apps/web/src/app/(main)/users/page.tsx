@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { authHeaders } from "@/lib/auth";
 
@@ -23,6 +24,7 @@ interface User {
 
 export default function UsersPage() {
   const ready = useAuthGuard();
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -49,6 +51,9 @@ export default function UsersPage() {
             <h1 style={styles.title}>Users</h1>
             <p style={styles.subtitle}>{loading ? "Loading…" : `${users.length} users total`}</p>
           </div>
+          <button style={styles.createButton} onClick={() => router.push("/create_user")}>
+            Add User
+          </button>
         </div>
 
         {error && <p style={styles.error}>{error}</p>}
@@ -118,6 +123,16 @@ const styles: Record<string, React.CSSProperties> = {
   },
   title: { margin: 0, fontSize: "2rem", color: "#1a1a2e" },
   subtitle: { margin: "0.35rem 0 0", color: "#6c757d", fontSize: "0.95rem" },
+  createButton: {
+    padding: "0.6rem 1.2rem",
+    borderRadius: "8px",
+    border: "none",
+    background: "#4f46e5",
+    color: "#fff",
+    fontSize: "0.9rem",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
   error: { color: "#dc3545", fontSize: "0.9rem", marginBottom: "1rem" },
   muted: { color: "#6c757d", fontSize: "0.95rem" },
   tableWrapper: {

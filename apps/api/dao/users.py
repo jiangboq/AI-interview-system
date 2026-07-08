@@ -21,3 +21,18 @@ def fetch_all_users() -> list[dict]:
                 "SELECT id::text, name, email, username, role, created_at FROM users ORDER BY created_at DESC"
             )
             return [dict(row) for row in cur.fetchall()]
+
+
+def insert_user(name: str, email: str, username: str, password_hash: str, role: str) -> dict:
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO users (name, email, username, password_hash, role)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id::text, name, email, username, role, created_at
+                """,
+                (name, email, username, password_hash, role),
+            )
+            conn.commit()
+            return dict(cur.fetchone())
