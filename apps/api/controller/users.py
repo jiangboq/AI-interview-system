@@ -35,6 +35,14 @@ def list_users():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/me", response_model=User)
+def get_current_user(payload: dict = Depends(require_auth)):
+    user = users_service.get_user_by_id(payload["sub"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
 @router.post("", response_model=User, status_code=201)
 def create_user(req: CreateUserRequest):
     try:

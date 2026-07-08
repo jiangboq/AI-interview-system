@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { clearToken } from "@/lib/auth";
+import { authHeaders, clearToken } from "@/lib/auth";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 const NAV_LINKS = [
   { href: "/organizations", label: "Organizations" },
@@ -13,16 +15,38 @@ const NAV_LINKS = [
   { href: "/users", label: "Users" },
 ];
 
-const CURRENT_USER = {
-  name: "Jane Doe",
-  initials: "JD",
-};
+interface CurrentUser {
+  name: string | null;
+  username: string | null;
+}
+
+function getInitials(user: CurrentUser): string {
+  const source = user.name ?? user.username ?? "";
+  const initials = source
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0]!.toUpperCase())
+    .slice(0, 2)
+    .join("");
+  return initials || "?";
+}
 
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/users/me`, { headers: authHeaders() })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch current user");
+        return res.json();
+      })
+      .then(setCurrentUser)
+      .catch(() => setCurrentUser(null));
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -70,7 +94,7 @@ export default function Header() {
             aria-label="User menu"
             aria-expanded={menuOpen}
           >
-            {CURRENT_USER.initials}
+            {currentUser ? getInitials(currentUser) : "…"}
           </button>
           {menuOpen && (
             <div style={styles.dropdown}>
