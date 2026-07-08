@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/jobs", label: "Jobs" },
   { href: "/interviews", label: "Interviews" },
   { href: "/candidates", label: "Candidates" },
+  { href: "/users", label: "Users" },
 ];
 
 const CURRENT_USER = {
