@@ -12,3 +12,12 @@ def fetch_user_by_username(username: str) -> dict | None:
             )
             row = cur.fetchone()
             return dict(row) if row else None
+
+
+def fetch_all_users() -> list[dict]:
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT id::text, name, email, username, role, created_at FROM users ORDER BY created_at DESC"
+            )
+            return [dict(row) for row in cur.fetchall()]
