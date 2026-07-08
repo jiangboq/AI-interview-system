@@ -58,13 +58,8 @@ export default function CreateUserPage() {
     <main style={styles.main}>
       <div style={styles.card}>
         <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>Add User</h1>
-            <p style={styles.subtitle}>Create a new user account</p>
-          </div>
-          <button style={styles.backButton} onClick={() => router.push("/users")}>
-            ← Back
-          </button>
+          <h1 style={styles.title}>Add User</h1>
+          <p style={styles.subtitle}>Create a new user account</p>
         </div>
 
         <div style={styles.form}>
@@ -148,22 +143,10 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: "480px",
   },
   header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
     marginBottom: "1.75rem",
   },
   title: { margin: 0, fontSize: "1.75rem", color: "#1a1a2e" },
   subtitle: { margin: "0.25rem 0 0", color: "#6c757d", fontSize: "0.9rem" },
-  backButton: {
-    padding: "0.4rem 0.9rem",
-    borderRadius: "8px",
-    border: "1px solid #dee2e6",
-    background: "#fff",
-    color: "#6c757d",
-    fontSize: "0.875rem",
-    cursor: "pointer",
-  },
   form: { display: "flex", flexDirection: "column", gap: "0.75rem" },
   label: { fontWeight: 600, fontSize: "0.875rem", color: "#333" },
   input: {
