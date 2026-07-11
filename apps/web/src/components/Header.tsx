@@ -98,6 +98,13 @@ export default function Header() {
           </button>
           {menuOpen && (
             <div style={styles.dropdown}>
+              <Link
+                href="/my_profile"
+                style={{ ...styles.dropdownItem, textDecoration: "none" }}
+                onClick={() => setMenuOpen(false)}
+              >
+                My Profile
+              </Link>
               <button style={styles.dropdownItem} onClick={handleLogout}>
                 Logout
               </button>
