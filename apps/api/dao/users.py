@@ -14,6 +14,17 @@ def fetch_user_by_username(username: str) -> dict | None:
             return dict(row) if row else None
 
 
+def fetch_user_by_id(user_id: str) -> dict | None:
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT id::text, name, email, username, role, created_at FROM users WHERE id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+            return dict(row) if row else None
+
+
 def fetch_all_users() -> list[dict]:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
