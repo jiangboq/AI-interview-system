@@ -16,8 +16,8 @@ def get_all_interviews() -> list[dict]:
     return interviews_dao.fetch_all_interviews()
 
 
-def create_interview(candidate_id: str, job_id: str) -> dict:
-    return interviews_dao.insert_interview(candidate_id, job_id)
+def create_interview(candidate_id: str, job_id: str, expected_duration: int | None = None) -> dict:
+    return interviews_dao.insert_interview(candidate_id, job_id, expected_duration)
 
 
 def get_interview_by_token(token: str) -> dict | None:

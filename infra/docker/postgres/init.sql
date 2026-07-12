@@ -137,6 +137,7 @@ CREATE TABLE interviews (
   scheduled_at TIMESTAMPTZ,
   started_at TIMESTAMPTZ,
   ended_at TIMESTAMPTZ,
+  expected_duration INTEGER,
 
   livekit_room_name TEXT,
 

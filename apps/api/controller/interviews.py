@@ -18,6 +18,7 @@ class InterviewRow(BaseModel):
 class CreateInterviewRequest(BaseModel):
     candidate_id: str
     job_id: str
+    expected_duration: int | None = None
 
 
 class Interview(BaseModel):
@@ -28,6 +29,7 @@ class Interview(BaseModel):
     created_at: str
     invite_token: str
     access_code: str
+    expected_duration: int | None = None
 
 
 class InterviewDetail(BaseModel):
@@ -86,7 +88,7 @@ def list_interviews():
 @router.post("", response_model=Interview, status_code=201, dependencies=[Depends(require_auth)])
 def create_interview(req: CreateInterviewRequest):
     try:
-        return interviews_service.create_interview(req.candidate_id, req.job_id)
+        return interviews_service.create_interview(req.candidate_id, req.job_id, req.expected_duration)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

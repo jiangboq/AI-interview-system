@@ -36,6 +36,7 @@ export default function CreateInterviewPage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showJobDropdown, setShowJobDropdown] = useState(false);
+  const [durationMinutes, setDurationMinutes] = useState("30");
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -118,6 +119,11 @@ export default function CreateInterviewPage() {
       setError("Please select a candidate and a position.");
       return;
     }
+    const minutes = Number(durationMinutes);
+    if (!minutes || minutes <= 0) {
+      setError("Please enter a valid duration in minutes.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
@@ -127,6 +133,7 @@ export default function CreateInterviewPage() {
         body: JSON.stringify({
           candidate_id: selectedCandidate.id,
           job_id: selectedJob.id,
+          expected_duration: Math.round(minutes * 60),
         }),
       });
       if (!res.ok) {
@@ -154,6 +161,7 @@ export default function CreateInterviewPage() {
     setSelectedCandidate(null);
     setPositionQuery("");
     setSelectedJob(null);
+    setDurationMinutes("30");
   }
 
   if (!ready) return null;
@@ -237,6 +245,16 @@ export default function CreateInterviewPage() {
                 </div>
               )}
             </div>
+
+            <label style={styles.label}>Duration (minutes)</label>
+            <input
+              style={styles.input}
+              type="number"
+              min={1}
+              placeholder="e.g. 30"
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(e.target.value)}
+            />
 
             {error && <p style={styles.error}>{error}</p>}
             <button style={styles.button} onClick={startInterview} disabled={loading}>
