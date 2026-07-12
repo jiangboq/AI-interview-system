@@ -29,12 +29,14 @@ API_URL = os.getenv("API_URL", "http://localhost:8000")
 load_dotenv()
 logger = logging.getLogger("voice-agent")
 
-# Total interview budget is ~30 minutes, split across sections below.
+DEFAULT_INTERVIEW_DURATION_SEC = 30 * 60
+
+# Share of the total interview duration allotted to each section.
 SECTION_BUDGETS_SEC = {
-    "intro": 3 * 60,
-    "project": 12 * 60,
-    "behavioral": 10 * 60,
-    "qa": 5 * 60,
+    "intro": 0.2,
+    "project": 0.4,
+    "behavioral": 0.3,
+    "qa": 0.1,
 }
 NUDGE_FRACTION = 0.8  # fraction of a section's budget before nudging the agent to wrap up
 
@@ -52,8 +54,14 @@ class InterviewState:
     job_title: str | None
     job_level: str | None
     resume: dict | None = None
+    expected_duration: int | None = None
     current_section: str = "intro"
     section_started_at: float = field(default_factory=time.monotonic)
+
+
+def _section_budget_sec(state: InterviewState, section: str) -> int:
+    total = state.expected_duration or DEFAULT_INTERVIEW_DURATION_SEC
+    return int(total * SECTION_BUDGETS_SEC[section])
 
 
 def _candidate_context_line(state: InterviewState) -> str:
@@ -157,10 +165,10 @@ def _qa_instructions(state: InterviewState) -> str:
 
 class SectionAgent(Agent):
     section_name = ""
-    budget_sec = 0
 
-    def __init__(self, instructions: str) -> None:
+    def __init__(self, instructions: str, budget_sec: int) -> None:
         super().__init__(instructions=instructions)
+        self.budget_sec = budget_sec
         self._watchdog_task: asyncio.Task | None = None
 
     def _next_agent(self) -> "SectionAgent | None":
@@ -198,10 +206,9 @@ class SectionAgent(Agent):
 
 class IntroAgent(SectionAgent):
     section_name = "intro"
-    budget_sec = SECTION_BUDGETS_SEC["intro"]
 
     def __init__(self, state: InterviewState) -> None:
-        super().__init__(_intro_instructions(state))
+        super().__init__(_intro_instructions(state), _section_budget_sec(state, "intro"))
 
     def _next_agent(self) -> SectionAgent:
         return ProjectAgent(self.session.userdata)
@@ -214,10 +221,9 @@ class IntroAgent(SectionAgent):
 
 class ProjectAgent(SectionAgent):
     section_name = "project"
-    budget_sec = SECTION_BUDGETS_SEC["project"]
 
     def __init__(self, state: InterviewState) -> None:
-        super().__init__(_project_instructions(state))
+        super().__init__(_project_instructions(state), _section_budget_sec(state, "project"))
 
     def _next_agent(self) -> SectionAgent:
         return BehavioralAgent(self.session.userdata)
@@ -230,10 +236,9 @@ class ProjectAgent(SectionAgent):
 
 class BehavioralAgent(SectionAgent):
     section_name = "behavioral"
-    budget_sec = SECTION_BUDGETS_SEC["behavioral"]
 
     def __init__(self, state: InterviewState) -> None:
-        super().__init__(_behavioral_instructions(state))
+        super().__init__(_behavioral_instructions(state), _section_budget_sec(state, "behavioral"))
 
     def _next_agent(self) -> SectionAgent:
         return QAAgent(self.session.userdata)
@@ -246,10 +251,9 @@ class BehavioralAgent(SectionAgent):
 
 class QAAgent(SectionAgent):
     section_name = "qa"
-    budget_sec = SECTION_BUDGETS_SEC["qa"]
 
     def __init__(self, state: InterviewState) -> None:
-        super().__init__(_qa_instructions(state))
+        super().__init__(_qa_instructions(state), _section_budget_sec(state, "qa"))
 
 
 server = AgentServer()
@@ -269,6 +273,7 @@ async def interview_agent(ctx: agents.JobContext):
     candidate_name = interview_cfg.get("candidate_name")
     job_title = interview_cfg.get("job_title")
     job_level = interview_cfg.get("job_level")
+    expected_duration = interview_cfg.get("expected_duration")
 
     resume = await _fetch_resume(interview_id) if interview_id else None
 
@@ -278,6 +283,7 @@ async def interview_agent(ctx: agents.JobContext):
         job_title=job_title,
         job_level=job_level,
         resume=resume,
+        expected_duration=expected_duration,
     )
     logger.info("Starting interview for candidate=%s job=%s level=%s", candidate_name, job_title, job_level)
 
