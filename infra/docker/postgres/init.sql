@@ -52,6 +52,7 @@ CREATE TABLE jobs (
   level TEXT CHECK (level IN ('junior', 'mid', 'senior', 'staff')),
   status TEXT DEFAULT 'draft',
   created_by UUID REFERENCES users(id),
+  parsed_requirements JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -318,6 +319,30 @@ CREATE INDEX idx_resume_blobs_file_url ON resume_blobs(file_url);
 CREATE INDEX idx_resume_blobs_candidate ON resume_blobs(candidate_id);
 CREATE INDEX idx_resume_blobs_status ON resume_blobs(status);
 CREATE INDEX idx_resume_blobs_parsed_data ON resume_blobs USING GIN (parsed_data);
+
+-- =========================================
+-- resume_job_matches
+-- =========================================
+CREATE TABLE resume_job_matches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  candidate_id UUID REFERENCES candidates(id),
+  job_id UUID REFERENCES jobs(id),
+  resume_blob_id UUID REFERENCES resume_blobs(id),
+
+  overall_score NUMERIC(5,2),
+  recommendation TEXT,
+  matched_skills TEXT[],
+  missing_skills TEXT[],
+  summary TEXT,
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE (candidate_id, job_id)
+);
+
+CREATE INDEX idx_resume_job_matches_candidate ON resume_job_matches(candidate_id);
+CREATE INDEX idx_resume_job_matches_job ON resume_job_matches(job_id);
 
 -- =========================================
 -- audit_events（非常关键）

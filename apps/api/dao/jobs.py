@@ -31,3 +31,33 @@ def insert_job(title: str, description: str, level: str, organization_id: str) -
             )
             conn.commit()
             return dict(cur.fetchone())
+
+
+def fetch_job_by_id(job_id: str) -> dict | None:
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT id::text, title, description, level, organization_id::text,
+                       parsed_requirements, updated_at
+                FROM jobs
+                WHERE id = %s
+                """,
+                (job_id,),
+            )
+            row = cur.fetchone()
+            return dict(row) if row else None
+
+
+def update_job_parsed_requirements(job_id: str, parsed_requirements: dict) -> None:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE jobs
+                SET parsed_requirements = %s, updated_at = NOW()
+                WHERE id = %s
+                """,
+                (psycopg2.extras.Json(parsed_requirements), job_id),
+            )
+            conn.commit()
