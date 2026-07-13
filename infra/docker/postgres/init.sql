@@ -334,7 +334,6 @@ CREATE TABLE resume_job_matches (
   matched_skills TEXT[],
   missing_skills TEXT[],
   summary TEXT,
-  model TEXT,
 
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),

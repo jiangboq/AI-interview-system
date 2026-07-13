@@ -4,8 +4,6 @@ from dao import resume_job_matches as matches_dao
 from service.jd_parser import parse_job_requirements
 from service.resume_matcher import score_match
 
-_MATCHING_MODEL = "gpt-4.1-mini"
-
 
 def get_or_compute_match(candidate_id: str, job_id: str) -> dict | None:
     job = jobs_dao.fetch_job_by_id(job_id)
@@ -39,5 +37,4 @@ def get_or_compute_match(candidate_id: str, job_id: str) -> dict | None:
         matched_skills=match.matched_skills,
         missing_skills=match.missing_skills,
         summary=match.summary,
-        model=_MATCHING_MODEL,
     )
