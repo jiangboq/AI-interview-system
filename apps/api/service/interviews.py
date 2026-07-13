@@ -8,6 +8,7 @@ from dao import scorecards as scorecards_dao
 from dao import transcripts as transcripts_dao
 from service import embeddings as embeddings_service
 from service import interview_scorer
+from service import resume_match as resume_match_service
 
 logger = logging.getLogger("interviews")
 
@@ -18,6 +19,15 @@ def get_all_interviews() -> list[dict]:
 
 def create_interview(candidate_id: str, job_id: str, expected_duration: int | None = None) -> dict:
     return interviews_dao.insert_interview(candidate_id, job_id, expected_duration)
+
+
+def evaluate_resume_match(candidate_id: str, job_id: str) -> None:
+    try:
+        resume_match_service.get_or_compute_match(candidate_id, job_id)
+    except Exception:
+        logger.exception(
+            "Failed to evaluate resume match for candidate %s against job %s", candidate_id, job_id
+        )
 
 
 def get_interview_by_token(token: str) -> dict | None:

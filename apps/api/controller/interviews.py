@@ -86,11 +86,13 @@ def list_interviews():
 
 
 @router.post("", response_model=Interview, status_code=201, dependencies=[Depends(require_auth)])
-def create_interview(req: CreateInterviewRequest):
+def create_interview(req: CreateInterviewRequest, background_tasks: BackgroundTasks):
     try:
-        return interviews_service.create_interview(req.candidate_id, req.job_id, req.expected_duration)
+        interview = interviews_service.create_interview(req.candidate_id, req.job_id, req.expected_duration)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    background_tasks.add_task(interviews_service.evaluate_resume_match, req.candidate_id, req.job_id)
+    return interview
 
 
 @router.get("/invite/{token}", response_model=InterviewPublicInfo)
