@@ -79,7 +79,11 @@ export default function JobsPage() {
                 const level = job.level ?? "";
                 const badge = LEVEL_COLORS[level] ?? { bg: "#e9ecef", text: "#495057" };
                 return (
-                  <div key={job.id} style={styles.card}>
+                  <div
+                    key={job.id}
+                    style={styles.card}
+                    onClick={() => router.push(`/job/${job.id}`)}
+                  >
                     <div style={styles.cardHeader}>
                       <h3 style={styles.jobTitle}>{job.title ?? "Untitled"}</h3>
                       {level && (
@@ -89,9 +93,26 @@ export default function JobsPage() {
                       )}
                     </div>
                     <p style={styles.description}>{job.description ?? "No description provided."}</p>
-                    <button style={styles.applyButton} onClick={() => router.push("/create_interview")}>
-                      Create Interview
-                    </button>
+                    <div style={styles.actions}>
+                      <button
+                        style={styles.viewButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/job/${job.id}`);
+                        }}
+                      >
+                        View Details
+                      </button>
+                      <button
+                        style={styles.applyButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push("/create_interview");
+                        }}
+                      >
+                        Create Interview
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -155,6 +176,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: "0.75rem",
+    cursor: "pointer",
   },
   cardHeader: {
     display: "flex",
@@ -177,6 +199,10 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.6,
     flexGrow: 1,
   },
+  actions: {
+    display: "flex",
+    gap: "0.6rem",
+  },
   applyButton: {
     alignSelf: "flex-start",
     padding: "0.5rem 1rem",
@@ -184,6 +210,17 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     background: "#4f46e5",
     color: "#fff",
+    fontSize: "0.875rem",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  viewButton: {
+    alignSelf: "flex-start",
+    padding: "0.5rem 1rem",
+    borderRadius: "8px",
+    border: "1px solid #4f46e5",
+    background: "#fff",
+    color: "#4f46e5",
     fontSize: "0.875rem",
     fontWeight: 600,
     cursor: "pointer",
