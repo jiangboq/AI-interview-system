@@ -93,15 +93,26 @@ export default function JobsPage() {
                       )}
                     </div>
                     <p style={styles.description}>{job.description ?? "No description provided."}</p>
-                    <button
-                      style={styles.applyButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push("/create_interview");
-                      }}
-                    >
-                      Create Interview
-                    </button>
+                    <div style={styles.actions}>
+                      <button
+                        style={styles.viewButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/job/${job.id}`);
+                        }}
+                      >
+                        View Details
+                      </button>
+                      <button
+                        style={styles.applyButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push("/create_interview");
+                        }}
+                      >
+                        Create Interview
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -188,6 +199,10 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.6,
     flexGrow: 1,
   },
+  actions: {
+    display: "flex",
+    gap: "0.6rem",
+  },
   applyButton: {
     alignSelf: "flex-start",
     padding: "0.5rem 1rem",
@@ -195,6 +210,17 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     background: "#4f46e5",
     color: "#fff",
+    fontSize: "0.875rem",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  viewButton: {
+    alignSelf: "flex-start",
+    padding: "0.5rem 1rem",
+    borderRadius: "8px",
+    border: "1px solid #4f46e5",
+    background: "#fff",
+    color: "#4f46e5",
     fontSize: "0.875rem",
     fontWeight: 600,
     cursor: "pointer",
