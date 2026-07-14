@@ -23,9 +23,15 @@ def insert_job(title: str, description: str, level: str, organization_id: str) -
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
                 """
-                INSERT INTO jobs (title, description, level, organization_id)
-                VALUES (%s, %s, %s, %s)
-                RETURNING id::text, title, description, level, organization_id::text
+                WITH inserted AS (
+                    INSERT INTO jobs (title, description, level, organization_id)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id, title, description, level, organization_id
+                )
+                SELECT inserted.id::text, inserted.title, inserted.description, inserted.level,
+                       inserted.organization_id::text, o.name AS organization_name
+                FROM inserted
+                LEFT JOIN organizations o ON o.id = inserted.organization_id
                 """,
                 (title, description, level, organization_id),
             )
