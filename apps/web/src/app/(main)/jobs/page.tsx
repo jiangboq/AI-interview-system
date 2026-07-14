@@ -79,7 +79,11 @@ export default function JobsPage() {
                 const level = job.level ?? "";
                 const badge = LEVEL_COLORS[level] ?? { bg: "#e9ecef", text: "#495057" };
                 return (
-                  <div key={job.id} style={styles.card}>
+                  <div
+                    key={job.id}
+                    style={styles.card}
+                    onClick={() => router.push(`/job/${job.id}`)}
+                  >
                     <div style={styles.cardHeader}>
                       <h3 style={styles.jobTitle}>{job.title ?? "Untitled"}</h3>
                       {level && (
@@ -89,7 +93,13 @@ export default function JobsPage() {
                       )}
                     </div>
                     <p style={styles.description}>{job.description ?? "No description provided."}</p>
-                    <button style={styles.applyButton} onClick={() => router.push("/create_interview")}>
+                    <button
+                      style={styles.applyButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push("/create_interview");
+                      }}
+                    >
                       Create Interview
                     </button>
                   </div>
@@ -155,6 +165,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: "0.75rem",
+    cursor: "pointer",
   },
   cardHeader: {
     display: "flex",

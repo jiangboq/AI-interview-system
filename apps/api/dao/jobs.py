@@ -44,10 +44,12 @@ def fetch_job_by_id(job_id: str) -> dict | None:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
                 """
-                SELECT id::text, title, description, level, organization_id::text,
-                       parsed_requirements, updated_at
-                FROM jobs
-                WHERE id = %s
+                SELECT j.id::text, j.title, j.description, j.level, j.interview_type, j.status,
+                       j.organization_id::text, o.name AS organization_name,
+                       j.parsed_requirements, j.created_at, j.updated_at
+                FROM jobs j
+                LEFT JOIN organizations o ON o.id = j.organization_id
+                WHERE j.id = %s
                 """,
                 (job_id,),
             )
