@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { authHeaders } from "@/lib/auth";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 
@@ -27,7 +28,16 @@ interface InterviewSession {
 }
 
 export default function CreateInterviewPage() {
+  return (
+    <Suspense fallback={null}>
+      <CreateInterviewForm />
+    </Suspense>
+  );
+}
+
+function CreateInterviewForm() {
   const ready = useAuthGuard();
+  const searchParams = useSearchParams();
   const [candidateQuery, setCandidateQuery] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -36,6 +46,7 @@ export default function CreateInterviewPage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showJobDropdown, setShowJobDropdown] = useState(false);
+  const [durationMinutes, setDurationMinutes] = useState("30");
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -56,6 +67,20 @@ export default function CreateInterviewPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const jobId = searchParams.get("job_id");
+    if (!jobId) return;
+    fetch(`${API_URL}/api/jobs/${jobId}`, { headers: authHeaders() })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((job: Job | null) => {
+        if (job) selectJob(job);
+      })
+      .catch(() => {
+        // silently fail — user can still pick a position manually
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   async function fetchCandidates() {
     if (candidates.length > 0) {
@@ -118,6 +143,11 @@ export default function CreateInterviewPage() {
       setError("Please select a candidate and a position.");
       return;
     }
+    const minutes = Number(durationMinutes);
+    if (!minutes || minutes <= 0) {
+      setError("Please enter a valid duration in minutes.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
@@ -127,6 +157,7 @@ export default function CreateInterviewPage() {
         body: JSON.stringify({
           candidate_id: selectedCandidate.id,
           job_id: selectedJob.id,
+          expected_duration: Math.round(minutes * 60),
         }),
       });
       if (!res.ok) {
@@ -154,6 +185,7 @@ export default function CreateInterviewPage() {
     setSelectedCandidate(null);
     setPositionQuery("");
     setSelectedJob(null);
+    setDurationMinutes("30");
   }
 
   if (!ready) return null;
@@ -237,6 +269,16 @@ export default function CreateInterviewPage() {
                 </div>
               )}
             </div>
+
+            <label style={styles.label}>Duration (minutes)</label>
+            <input
+              style={styles.input}
+              type="number"
+              min={1}
+              placeholder="e.g. 30"
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(e.target.value)}
+            />
 
             {error && <p style={styles.error}>{error}</p>}
             <button style={styles.button} onClick={startInterview} disabled={loading}>

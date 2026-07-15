@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -32,6 +33,27 @@ class CreateJobRequest(BaseModel):
     organization_id: str
 
 
+class UpdateJobRequest(BaseModel):
+    title: str
+    description: str
+    level: JobLevel
+    organization_id: str
+
+
+class JobDetail(BaseModel):
+    id: str
+    title: str | None
+    description: str | None
+    level: str | None
+    interview_type: str | None
+    status: str | None
+    organization_id: str | None
+    organization_name: str | None
+    parsed_requirements: dict | None
+    created_at: datetime
+    updated_at: datetime
+
+
 @router.get("", response_model=list[Job])
 def list_jobs():
     try:
@@ -46,3 +68,22 @@ def create_job(req: CreateJobRequest):
         return jobs_service.create_job(req.title, req.description, req.level.value, req.organization_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{job_id}", response_model=JobDetail)
+def get_job(job_id: str):
+    job = jobs_service.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+
+@router.patch("/{job_id}", response_model=Job)
+def update_job(job_id: str, req: UpdateJobRequest):
+    try:
+        job = jobs_service.update_job(job_id, req.title, req.description, req.level.value, req.organization_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job

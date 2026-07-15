@@ -82,6 +82,21 @@ export default function CandidateInterviewPage() {
   async function startInterview() {
     setPageState("starting");
     try {
+      const sessionRes = await fetch(`${API_URL}/api/livekit/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          room_name: token,
+          interview_id: interview?.id,
+          interview: {
+            candidate_name: interview?.candidate_name,
+            job_title: interview?.job_title,
+            job_level: interview?.job_level,
+          },
+        }),
+      });
+      if (!sessionRes.ok) throw new Error("Failed to start interview session");
+
       const res = await fetch(`${API_URL}/api/livekit/token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

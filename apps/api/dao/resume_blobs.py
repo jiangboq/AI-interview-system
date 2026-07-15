@@ -112,6 +112,23 @@ def fetch_latest_parsed_blob_for_interview(interview_id: str) -> dict | None:
             return dict(row) if row else None
 
 
+def fetch_latest_parsed_blob_for_candidate(candidate_id: str) -> dict | None:
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT id::text, file_url, parsed_data, created_at
+                FROM resume_blobs
+                WHERE candidate_id = %s AND status = 'parsed'
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (candidate_id,),
+            )
+            row = cur.fetchone()
+            return dict(row) if row else None
+
+
 def fetch_blob_by_id(blob_id: str) -> dict | None:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
