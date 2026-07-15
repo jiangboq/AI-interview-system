@@ -18,6 +18,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 interface Interview {
   id: string;
   candidate_name: string | null;
+  job_id: string | null;
   job_title: string | null;
   status: string | null;
   created_at: string;
@@ -87,7 +88,15 @@ export default function InterviewsPage() {
                   return (
                     <tr key={iv.id} style={i % 2 === 0 ? styles.rowEven : styles.rowOdd}>
                       <td style={styles.td}>{iv.candidate_name ?? "—"}</td>
-                      <td style={styles.td}>{iv.job_title ?? "—"}</td>
+                      <td style={styles.td}>
+                        {iv.job_id ? (
+                          <Link href={`/job/${iv.job_id}`} style={styles.jobLink}>
+                            {iv.job_title ?? "—"}
+                          </Link>
+                        ) : (
+                          iv.job_title ?? "—"
+                        )}
+                      </td>
                       <td style={styles.td}>
                         <span style={{ ...styles.badge, background: badge.bg, color: badge.text }}>
                           {status.replace("_", " ")}
@@ -195,5 +204,10 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     color: "#4f46e5",
+  },
+  jobLink: {
+    color: "#4f46e5",
+    fontWeight: 600,
+    textDecoration: "none",
   },
 };
