@@ -107,7 +107,7 @@ export default function JobsPage() {
                         style={styles.applyButton}
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push("/create_interview");
+                          router.push(`/create_interview?job_id=${job.id}`);
                         }}
                       >
                         Create Interview

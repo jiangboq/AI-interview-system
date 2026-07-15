@@ -176,7 +176,7 @@ export default function JobDetailPage() {
               </div>
             )}
 
-            <button style={styles.applyButton} onClick={() => router.push("/create_interview")}>
+            <button style={styles.applyButton} onClick={() => router.push(`/create_interview?job_id=${jobId}`)}>
               Create Interview
             </button>
           </>

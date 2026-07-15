@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { authHeaders } from "@/lib/auth";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 
@@ -27,7 +28,16 @@ interface InterviewSession {
 }
 
 export default function CreateInterviewPage() {
+  return (
+    <Suspense fallback={null}>
+      <CreateInterviewForm />
+    </Suspense>
+  );
+}
+
+function CreateInterviewForm() {
   const ready = useAuthGuard();
+  const searchParams = useSearchParams();
   const [candidateQuery, setCandidateQuery] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -57,6 +67,20 @@ export default function CreateInterviewPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const jobId = searchParams.get("job_id");
+    if (!jobId) return;
+    fetch(`${API_URL}/api/jobs/${jobId}`, { headers: authHeaders() })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((job: Job | null) => {
+        if (job) selectJob(job);
+      })
+      .catch(() => {
+        // silently fail — user can still pick a position manually
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   async function fetchCandidates() {
     if (candidates.length > 0) {
