@@ -33,6 +33,13 @@ class CreateJobRequest(BaseModel):
     organization_id: str
 
 
+class UpdateJobRequest(BaseModel):
+    title: str
+    description: str
+    level: JobLevel
+    organization_id: str
+
+
 class JobDetail(BaseModel):
     id: str
     title: str | None
@@ -66,6 +73,17 @@ def create_job(req: CreateJobRequest):
 @router.get("/{job_id}", response_model=JobDetail)
 def get_job(job_id: str):
     job = jobs_service.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+
+@router.patch("/{job_id}", response_model=Job)
+def update_job(job_id: str, req: UpdateJobRequest):
+    try:
+        job = jobs_service.update_job(job_id, req.title, req.description, req.level.value, req.organization_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
