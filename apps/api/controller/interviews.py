@@ -10,6 +10,7 @@ router = APIRouter(prefix="/api/interviews", tags=["interviews"])
 class InterviewRow(BaseModel):
     id: str
     candidate_name: str | None
+    job_id: str | None
     job_title: str | None
     status: str | None
     created_at: str

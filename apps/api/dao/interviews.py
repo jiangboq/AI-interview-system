@@ -17,6 +17,7 @@ def fetch_all_interviews() -> list[dict]:
                 SELECT
                     i.id::text,
                     c.full_name  AS candidate_name,
+                    j.id::text   AS job_id,
                     j.title      AS job_title,
                     i.status,
                     i.created_at::text
