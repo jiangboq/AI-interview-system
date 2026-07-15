@@ -176,9 +176,14 @@ export default function JobDetailPage() {
               </div>
             )}
 
-            <button style={styles.applyButton} onClick={() => router.push(`/create_interview?job_id=${jobId}`)}>
-              Create Interview
-            </button>
+            <div style={styles.actions}>
+              <button style={styles.editButton} onClick={() => router.push(`/job/edit/${jobId}`)}>
+                Edit
+              </button>
+              <button style={styles.applyButton} onClick={() => router.push(`/create_interview?job_id=${jobId}`)}>
+                Create Interview
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -246,6 +251,17 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     background: "#4f46e5",
     color: "#fff",
+    fontSize: "0.9rem",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  actions: { display: "flex", gap: "0.75rem" },
+  editButton: {
+    padding: "0.6rem 1.2rem",
+    borderRadius: "8px",
+    border: "1px solid #dee2e6",
+    background: "#fff",
+    color: "#333",
     fontSize: "0.9rem",
     fontWeight: 600,
     cursor: "pointer",
