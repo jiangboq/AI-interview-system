@@ -78,6 +78,14 @@ class ScoreCardResponse(BaseModel):
     created_at: str
 
 
+class ResumeMatchResponse(BaseModel):
+    overall_score: float
+    recommendation: str
+    matched_skills: list[str]
+    missing_skills: list[str]
+    summary: str
+
+
 @router.get("", response_model=list[InterviewRow], dependencies=[Depends(require_auth)])
 def list_interviews():
     try:
@@ -145,3 +153,11 @@ def get_scorecard(interview_id: str):
     if not scorecard:
         raise HTTPException(status_code=404, detail="Scorecard not found")
     return scorecard
+
+
+@router.get("/{interview_id}/resume-match", response_model=ResumeMatchResponse, dependencies=[Depends(require_admin)])
+def get_resume_match(interview_id: str):
+    match = interviews_service.get_resume_match(interview_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Resume match not found")
+    return match
