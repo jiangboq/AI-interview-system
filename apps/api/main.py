@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,8 +16,17 @@ from controller.organizations import router as organizations_router
 from controller.transcripts import router as transcripts_router
 from controller.upload import router as upload_router
 from controller.users import router as users_router
+from db import close_pool, init_pool
 
-app = FastAPI(title="AI Interview System API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_pool()
+    yield
+    close_pool()
+
+
+app = FastAPI(title="AI Interview System API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
