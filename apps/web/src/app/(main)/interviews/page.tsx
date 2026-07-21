@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { authHeaders } from "@/lib/auth";
+import { DEFAULT_PAGE_SIZE, Page } from "@/lib/pagination";
+import Pagination from "@/components/Pagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -28,20 +30,30 @@ export default function InterviewsPage() {
   const ready = useAuthGuard();
   const router = useRouter();
   const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!ready) return;
-    fetch(`${API_URL}/api/interviews`, { headers: authHeaders() })
+    setLoading(true);
+    fetch(`${API_URL}/api/interviews?page=${page}&page_size=${DEFAULT_PAGE_SIZE}`, {
+      headers: authHeaders(),
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch interviews");
         return res.json();
       })
-      .then(setInterviews)
+      .then((data: Page<Interview>) => {
+        setInterviews(data.items);
+        setTotal(data.total);
+        setTotalPages(data.total_pages);
+      })
       .catch(() => setError("Could not load interviews. Make sure the backend is running."))
       .finally(() => setLoading(false));
-  }, [ready]);
+  }, [ready, page]);
 
   if (!ready) return null;
 
@@ -51,9 +63,7 @@ export default function InterviewsPage() {
         <div style={styles.header}>
           <div>
             <h1 style={styles.title}>Interviews</h1>
-            <p style={styles.subtitle}>
-              {loading ? "Loading…" : `${interviews.length} interviews total`}
-            </p>
+            <p style={styles.subtitle}>{loading ? "Loading…" : `${total} interviews total`}</p>
           </div>
           <button style={styles.createButton} onClick={() => router.push("/create_interview")}>
             Create Interview
@@ -126,6 +136,7 @@ export default function InterviewsPage() {
                 })}
               </tbody>
             </table>
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </div>
         )}
       </div>

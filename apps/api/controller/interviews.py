@@ -2,6 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
 from deps import require_admin, require_auth
+from pagination import Page, PageParams
 from service import interviews as interviews_service
 
 router = APIRouter(prefix="/api/interviews", tags=["interviews"])
@@ -86,10 +87,11 @@ class ResumeMatchResponse(BaseModel):
     summary: str
 
 
-@router.get("", response_model=list[InterviewRow], dependencies=[Depends(require_auth)])
-def list_interviews():
+@router.get("", response_model=Page[InterviewRow], dependencies=[Depends(require_auth)])
+def list_interviews(page_params: PageParams = Depends()):
     try:
-        return interviews_service.get_all_interviews()
+        items, total = interviews_service.get_all_interviews(page_params.limit, page_params.offset)
+        return Page.create(items, total, page_params.page, page_params.page_size)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

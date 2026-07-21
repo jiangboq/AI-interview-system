@@ -2,8 +2,8 @@ from dao import users as users_dao
 from service.auth import hash_password
 
 
-def get_all_users() -> list[dict]:
-    return users_dao.fetch_all_users()
+def get_all_users(limit: int, offset: int) -> tuple[list[dict], int]:
+    return users_dao.fetch_all_users(limit, offset)
 
 
 def get_user_by_id(user_id: str) -> dict | None:

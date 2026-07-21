@@ -4,6 +4,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 
 from deps import require_auth
+from pagination import Page, PageParams
 from pydantic import BaseModel
 from service import users as users_service
 
@@ -27,10 +28,11 @@ class CreateUserRequest(BaseModel):
     role: Literal["candidate", "recruiter", "admin"] = "candidate"
 
 
-@router.get("", response_model=list[User])
-def list_users():
+@router.get("", response_model=Page[User])
+def list_users(page_params: PageParams = Depends()):
     try:
-        return users_service.get_all_users()
+        items, total = users_service.get_all_users(page_params.limit, page_params.offset)
+        return Page.create(items, total, page_params.page, page_params.page_size)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

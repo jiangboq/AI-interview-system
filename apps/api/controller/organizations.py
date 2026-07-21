@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from deps import require_auth
+from pagination import Page, PageParams
 from service import organizations as organizations_service
 
 router = APIRouter(prefix="/api/organizations", tags=["organizations"], dependencies=[Depends(require_auth)])
@@ -19,10 +20,11 @@ class CreateOrganizationRequest(BaseModel):
     name: str
 
 
-@router.get("", response_model=list[Organization])
-def list_organizations():
+@router.get("", response_model=Page[Organization])
+def list_organizations(page_params: PageParams = Depends()):
     try:
-        return organizations_service.get_all_organizations()
+        items, total = organizations_service.get_all_organizations(page_params.limit, page_params.offset)
+        return Page.create(items, total, page_params.page, page_params.page_size)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

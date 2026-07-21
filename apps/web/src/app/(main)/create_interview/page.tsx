@@ -88,10 +88,10 @@ function CreateInterviewForm() {
       return;
     }
     try {
-      const res = await fetch(`${API_URL}/api/candidates`, { headers: authHeaders() });
+      const res = await fetch(`${API_URL}/api/candidates?page_size=100`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
-      const data: Candidate[] = await res.json();
-      setCandidates(data);
+      const data: { items: Candidate[] } = await res.json();
+      setCandidates(data.items);
       setShowCandidateDropdown(true);
     } catch {
       // silently fail — user can still type manually
