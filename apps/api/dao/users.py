@@ -1,6 +1,7 @@
 import psycopg2.extras
 
 from db import get_db
+from pagination import paginate_rows
 
 
 def fetch_user_by_username(username: str) -> dict | None:
@@ -25,13 +26,19 @@ def fetch_user_by_id(user_id: str) -> dict | None:
             return dict(row) if row else None
 
 
-def fetch_all_users() -> list[dict]:
+def fetch_all_users(limit: int, offset: int) -> tuple[list[dict], int]:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
-                "SELECT id::text, name, email, username, role, created_at FROM users ORDER BY created_at DESC"
+                """
+                SELECT id::text, name, email, username, role, created_at, COUNT(*) OVER() AS total_count
+                FROM users
+                ORDER BY created_at DESC
+                LIMIT %s OFFSET %s
+                """,
+                (limit, offset),
             )
-            return [dict(row) for row in cur.fetchall()]
+            return paginate_rows([dict(row) for row in cur.fetchall()])
 
 
 def insert_user(name: str, email: str, username: str, password_hash: str, role: str) -> dict:
