@@ -46,6 +46,14 @@ interface ScoreCard {
   created_at: string;
 }
 
+interface ResumeMatch {
+  overall_score: number;
+  recommendation: string;
+  matched_skills: string[];
+  missing_skills: string[];
+  summary: string;
+}
+
 function formatDate(value: string | null): string {
   if (!value) return "—";
   return new Date(value).toLocaleString(undefined, {
@@ -61,6 +69,7 @@ export default function InterviewDetailPage() {
 
   const [interview, setInterview] = useState<InterviewDetail | null>(null);
   const [scorecard, setScorecard] = useState<ScoreCard | null>(null);
+  const [resumeMatch, setResumeMatch] = useState<ResumeMatch | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -77,10 +86,16 @@ export default function InterviewDetailPage() {
         if (!res.ok) throw new Error("Failed to fetch scorecard");
         return res.json();
       }),
+      fetch(`${API_URL}/api/interviews/${interviewId}/resume-match`, { headers: authHeaders() }).then((res) => {
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error("Failed to fetch resume match");
+        return res.json();
+      }),
     ])
-      .then(([interviewData, scorecardData]) => {
+      .then(([interviewData, scorecardData, resumeMatchData]) => {
         setInterview(interviewData);
         setScorecard(scorecardData);
+        setResumeMatch(resumeMatchData);
       })
       .catch(() => setError("Could not load interview. Make sure the backend is running."))
       .finally(() => setLoading(false));
@@ -165,7 +180,38 @@ export default function InterviewDetailPage() {
                       <p style={styles.label}>Recommendation</p>
                       <p style={styles.value}>{scorecard.recommendation}</p>
                     </div>
+                    <div>
+                      <p style={styles.label}>Resume match</p>
+                      <p style={styles.value}>
+                        {resumeMatch ? `${resumeMatch.overall_score} · ${resumeMatch.recommendation}` : "—"}
+                      </p>
+                    </div>
                   </div>
+
+                  {resumeMatch && (
+                    <div style={{ marginTop: "1.25rem" }}>
+                      <p style={styles.label}>Resume match details</p>
+                      <p style={styles.value}>{resumeMatch.summary}</p>
+                      <div style={{ ...styles.grid, marginTop: "0.75rem" }}>
+                        {resumeMatch.matched_skills.length > 0 && (
+                          <div>
+                            <p style={styles.label}>Matched skills</p>
+                            <ul style={styles.list}>
+                              {resumeMatch.matched_skills.map((s, i) => <li key={i}>{s}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                        {resumeMatch.missing_skills.length > 0 && (
+                          <div>
+                            <p style={styles.label}>Missing skills</p>
+                            <ul style={styles.list}>
+                              {resumeMatch.missing_skills.map((s, i) => <li key={i}>{s}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {scorecard.strengths.length > 0 && (
                     <div style={{ marginTop: "1.25rem" }}>

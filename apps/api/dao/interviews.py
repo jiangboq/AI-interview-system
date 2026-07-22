@@ -3,13 +3,14 @@ import secrets
 import psycopg2.extras
 
 from db import get_db
+from pagination import paginate_rows
 
 
 def _generate_access_code() -> str:
     return "".join([str(secrets.randbelow(10)) for _ in range(8)])
 
 
-def fetch_all_interviews() -> list[dict]:
+def fetch_all_interviews(limit: int, offset: int) -> tuple[list[dict], int]:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
@@ -17,16 +18,20 @@ def fetch_all_interviews() -> list[dict]:
                 SELECT
                     i.id::text,
                     c.full_name  AS candidate_name,
+                    j.id::text   AS job_id,
                     j.title      AS job_title,
                     i.status,
-                    i.created_at::text
+                    i.created_at::text,
+                    COUNT(*) OVER() AS total_count
                 FROM interviews i
                 LEFT JOIN candidates c ON c.id = i.candidate_id
                 LEFT JOIN jobs      j ON j.id = i.job_id
                 ORDER BY i.created_at DESC
-                """
+                LIMIT %s OFFSET %s
+                """,
+                (limit, offset),
             )
-            return [dict(row) for row in cur.fetchall()]
+            return paginate_rows([dict(row) for row in cur.fetchall()])
 
 
 def insert_interview(candidate_id: str, job_id: str, expected_duration: int | None = None) -> dict:
@@ -53,6 +58,7 @@ def fetch_interview(interview_id: str) -> dict | None:
                 """
                 SELECT
                     i.id::text,
+                    i.candidate_id::text,
                     i.job_id::text,
                     i.status,
                     c.full_name AS candidate_name,

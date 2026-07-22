@@ -48,17 +48,18 @@ export default function EditJobPage() {
         if (!res.ok) throw new Error("Failed to fetch job");
         return res.json() as Promise<JobDetail>;
       }),
-      fetch(`${API_URL}/api/organizations`, { headers: authHeaders() }).then((res) => {
+      fetch(`${API_URL}/api/organizations?page_size=100`, { headers: authHeaders() }).then((res) => {
         if (!res.ok) throw new Error("Failed to fetch organizations");
-        return res.json() as Promise<Organization[]>;
+        return res.json() as Promise<{ items: Organization[] }>;
       }),
     ])
-      .then(([job, orgs]) => {
+      .then(([job, orgsPage]) => {
         setTitle(job.title ?? "");
         setDescription(job.description ?? "");
         if (job.level && (LEVELS as readonly string[]).includes(job.level)) {
           setLevel(job.level as Level);
         }
+        const orgs = orgsPage.items;
         setOrganizations(orgs);
         setOrganizationId(job.organization_id ?? (orgs.length > 0 ? orgs[0].id : ""));
       })

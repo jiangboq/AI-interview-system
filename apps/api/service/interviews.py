@@ -3,6 +3,7 @@ import os
 
 from dao import interviews as interviews_dao
 from dao import resume_blobs as resume_blobs_dao
+from dao import resume_job_matches as resume_job_matches_dao
 from dao import scorecard_embeddings as scorecard_embeddings_dao
 from dao import scorecards as scorecards_dao
 from dao import transcripts as transcripts_dao
@@ -13,8 +14,8 @@ from service import resume_match as resume_match_service
 logger = logging.getLogger("interviews")
 
 
-def get_all_interviews() -> list[dict]:
-    return interviews_dao.fetch_all_interviews()
+def get_all_interviews(limit: int, offset: int) -> tuple[list[dict], int]:
+    return interviews_dao.fetch_all_interviews(limit, offset)
 
 
 def create_interview(candidate_id: str, job_id: str, expected_duration: int | None = None) -> dict:
@@ -49,6 +50,17 @@ def get_interview_resume(interview_id: str) -> dict | None:
 
 def get_scorecard(interview_id: str) -> dict | None:
     return scorecards_dao.fetch_scorecard(interview_id)
+
+
+def get_resume_match(interview_id: str) -> dict | None:
+    interview = interviews_dao.fetch_interview(interview_id)
+    if not interview:
+        return None
+    candidate_id = interview.get("candidate_id")
+    job_id = interview.get("job_id")
+    if not candidate_id or not job_id:
+        return None
+    return resume_job_matches_dao.fetch_match(candidate_id, job_id)
 
 
 def _fetch_calibration_scorecards(turns: list[dict], job_id: str | None) -> list[dict]:

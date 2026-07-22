@@ -28,14 +28,14 @@ export default function CreateJobPage() {
 
   useEffect(() => {
     if (!ready) return;
-    fetch(`${API_URL}/api/organizations`, { headers: authHeaders() })
+    fetch(`${API_URL}/api/organizations?page_size=100`, { headers: authHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch organizations");
         return res.json();
       })
-      .then((data: Organization[]) => {
-        setOrganizations(data);
-        if (data.length > 0) setOrganizationId(data[0].id);
+      .then((data: { items: Organization[] }) => {
+        setOrganizations(data.items);
+        if (data.items.length > 0) setOrganizationId(data.items[0].id);
       })
       .catch(() => setError("Could not load organizations. Make sure the backend is running."));
   }, [ready]);

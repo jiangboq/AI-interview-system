@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { authHeaders } from "@/lib/auth";
+import { DEFAULT_PAGE_SIZE, Page } from "@/lib/pagination";
+import Pagination from "@/components/Pagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -26,20 +28,30 @@ export default function UsersPage() {
   const ready = useAuthGuard();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!ready) return;
-    fetch(`${API_URL}/api/users`, { headers: authHeaders() })
+    setLoading(true);
+    fetch(`${API_URL}/api/users?page=${page}&page_size=${DEFAULT_PAGE_SIZE}`, {
+      headers: authHeaders(),
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch users");
         return res.json();
       })
-      .then(setUsers)
+      .then((data: Page<User>) => {
+        setUsers(data.items);
+        setTotal(data.total);
+        setTotalPages(data.total_pages);
+      })
       .catch(() => setError("Could not load users. Make sure the backend is running."))
       .finally(() => setLoading(false));
-  }, [ready]);
+  }, [ready, page]);
 
   if (!ready) return null;
 
@@ -49,7 +61,7 @@ export default function UsersPage() {
         <div style={styles.header}>
           <div>
             <h1 style={styles.title}>Users</h1>
-            <p style={styles.subtitle}>{loading ? "Loading…" : `${users.length} users total`}</p>
+            <p style={styles.subtitle}>{loading ? "Loading…" : `${total} users total`}</p>
           </div>
           <button style={styles.createButton} onClick={() => router.push("/create_user")}>
             Add User
@@ -98,6 +110,7 @@ export default function UsersPage() {
                 })}
               </tbody>
             </table>
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </div>
         )}
       </div>

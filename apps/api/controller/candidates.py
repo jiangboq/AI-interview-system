@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from deps import require_auth
+from pagination import Page, PageParams
 from service import candidates as candidates_service
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"], dependencies=[Depends(require_auth)])
@@ -20,10 +21,11 @@ class CreateCandidateRequest(BaseModel):
     resume_url: str | None = None
 
 
-@router.get("", response_model=list[Candidate])
-def list_candidates():
+@router.get("", response_model=Page[Candidate])
+def list_candidates(page_params: PageParams = Depends()):
     try:
-        return candidates_service.get_all_candidates()
+        items, total = candidates_service.get_all_candidates(page_params.limit, page_params.offset)
+        return Page.create(items, total, page_params.page, page_params.page_size)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

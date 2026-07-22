@@ -2,6 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
 from deps import require_admin, require_auth
+from pagination import Page, PageParams
 from service import interviews as interviews_service
 
 router = APIRouter(prefix="/api/interviews", tags=["interviews"])
@@ -10,6 +11,7 @@ router = APIRouter(prefix="/api/interviews", tags=["interviews"])
 class InterviewRow(BaseModel):
     id: str
     candidate_name: str | None
+    job_id: str | None
     job_title: str | None
     status: str | None
     created_at: str
@@ -77,10 +79,19 @@ class ScoreCardResponse(BaseModel):
     created_at: str
 
 
-@router.get("", response_model=list[InterviewRow], dependencies=[Depends(require_auth)])
-def list_interviews():
+class ResumeMatchResponse(BaseModel):
+    overall_score: float
+    recommendation: str
+    matched_skills: list[str]
+    missing_skills: list[str]
+    summary: str
+
+
+@router.get("", response_model=Page[InterviewRow], dependencies=[Depends(require_auth)])
+def list_interviews(page_params: PageParams = Depends()):
     try:
-        return interviews_service.get_all_interviews()
+        items, total = interviews_service.get_all_interviews(page_params.limit, page_params.offset)
+        return Page.create(items, total, page_params.page, page_params.page_size)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -144,3 +155,11 @@ def get_scorecard(interview_id: str):
     if not scorecard:
         raise HTTPException(status_code=404, detail="Scorecard not found")
     return scorecard
+
+
+@router.get("/{interview_id}/resume-match", response_model=ResumeMatchResponse, dependencies=[Depends(require_admin)])
+def get_resume_match(interview_id: str):
+    match = interviews_service.get_resume_match(interview_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Resume match not found")
+    return match
