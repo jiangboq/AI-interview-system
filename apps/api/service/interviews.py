@@ -35,8 +35,8 @@ def get_interview_by_token(token: str) -> dict | None:
     return interviews_dao.fetch_interview_by_token(token)
 
 
-def get_interview_detail(interview_id: str) -> dict | None:
-    return interviews_dao.fetch_interview_detail(interview_id)
+def get_interview_detail(interview_id: str, org_ids: list[str] | None) -> dict | None:
+    return interviews_dao.fetch_interview_detail(interview_id, org_ids)
 
 
 def end_interview(interview_id: str) -> None:
@@ -48,12 +48,12 @@ def get_interview_resume(interview_id: str) -> dict | None:
     return blob["parsed_data"] if blob else None
 
 
-def get_scorecard(interview_id: str) -> dict | None:
-    return scorecards_dao.fetch_scorecard(interview_id)
+def get_scorecard(interview_id: str, org_ids: list[str] | None) -> dict | None:
+    return scorecards_dao.fetch_scorecard(interview_id, org_ids)
 
 
-def get_resume_match(interview_id: str) -> dict | None:
-    interview = interviews_dao.fetch_interview(interview_id)
+def get_resume_match(interview_id: str, org_ids: list[str] | None) -> dict | None:
+    interview = interviews_dao.fetch_interview(interview_id, org_ids)
     if not interview:
         return None
     candidate_id = interview.get("candidate_id")

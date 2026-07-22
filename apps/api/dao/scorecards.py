@@ -3,17 +3,19 @@ import psycopg2.extras
 from db import get_db
 
 
-def fetch_scorecard(interview_id: str) -> dict | None:
+def fetch_scorecard(interview_id: str, org_ids: list[str] | None = None) -> dict | None:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
                 """
-                SELECT id::text, interview_id::text, overall_score, recommendation,
-                       strengths, concerns, raw_evaluation, created_at::text
-                FROM scorecards
-                WHERE interview_id = %s
+                SELECT s.id::text, s.interview_id::text, s.overall_score, s.recommendation,
+                       s.strengths, s.concerns, s.raw_evaluation, s.created_at::text
+                FROM scorecards s
+                JOIN interviews i ON i.id = s.interview_id
+                LEFT JOIN jobs   j ON j.id = i.job_id
+                WHERE s.interview_id = %s AND (%s::uuid[] IS NULL OR j.organization_id = ANY(%s::uuid[]))
                 """,
-                (interview_id,),
+                (interview_id, org_ids, org_ids),
             )
             row = cur.fetchone()
             if not row:

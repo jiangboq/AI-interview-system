@@ -52,7 +52,7 @@ def insert_interview(candidate_id: str, job_id: str, expected_duration: int | No
             return dict(cur.fetchone())
 
 
-def fetch_interview(interview_id: str) -> dict | None:
+def fetch_interview(interview_id: str, org_ids: list[str] | None = None) -> dict | None:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
@@ -68,15 +68,15 @@ def fetch_interview(interview_id: str) -> dict | None:
                 FROM interviews i
                 LEFT JOIN candidates c ON c.id = i.candidate_id
                 LEFT JOIN jobs      j ON j.id = i.job_id
-                WHERE i.id = %s
+                WHERE i.id = %s AND (%s::uuid[] IS NULL OR j.organization_id = ANY(%s::uuid[]))
                 """,
-                (interview_id,),
+                (interview_id, org_ids, org_ids),
             )
             row = cur.fetchone()
             return dict(row) if row else None
 
 
-def fetch_interview_detail(interview_id: str) -> dict | None:
+def fetch_interview_detail(interview_id: str, org_ids: list[str] | None = None) -> dict | None:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
@@ -96,9 +96,9 @@ def fetch_interview_detail(interview_id: str) -> dict | None:
                 FROM interviews i
                 LEFT JOIN candidates c ON c.id = i.candidate_id
                 LEFT JOIN jobs      j ON j.id = i.job_id
-                WHERE i.id = %s
+                WHERE i.id = %s AND (%s::uuid[] IS NULL OR j.organization_id = ANY(%s::uuid[]))
                 """,
-                (interview_id,),
+                (interview_id, org_ids, org_ids),
             )
             row = cur.fetchone()
             return dict(row) if row else None
