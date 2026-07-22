@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
-from deps import get_org_ids, require_admin, require_auth
+from deps import get_org_ids, require_auth
 from pagination import Page, PageParams
 from service import interviews as interviews_service
 from service import jobs as jobs_service
@@ -146,25 +146,25 @@ def get_interview_resume(interview_id: str):
     return resume
 
 
-@router.get("/{interview_id}", response_model=InterviewDetail, dependencies=[Depends(require_admin)])
-def get_interview_detail(interview_id: str):
-    interview = interviews_service.get_interview_detail(interview_id)
+@router.get("/{interview_id}", response_model=InterviewDetail)
+def get_interview_detail(interview_id: str, org_ids: list[str] | None = Depends(get_org_ids)):
+    interview = interviews_service.get_interview_detail(interview_id, org_ids)
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
     return interview
 
 
-@router.get("/{interview_id}/scorecard", response_model=ScoreCardResponse, dependencies=[Depends(require_admin)])
-def get_scorecard(interview_id: str):
-    scorecard = interviews_service.get_scorecard(interview_id)
+@router.get("/{interview_id}/scorecard", response_model=ScoreCardResponse)
+def get_scorecard(interview_id: str, org_ids: list[str] | None = Depends(get_org_ids)):
+    scorecard = interviews_service.get_scorecard(interview_id, org_ids)
     if not scorecard:
         raise HTTPException(status_code=404, detail="Scorecard not found")
     return scorecard
 
 
-@router.get("/{interview_id}/resume-match", response_model=ResumeMatchResponse, dependencies=[Depends(require_admin)])
-def get_resume_match(interview_id: str):
-    match = interviews_service.get_resume_match(interview_id)
+@router.get("/{interview_id}/resume-match", response_model=ResumeMatchResponse)
+def get_resume_match(interview_id: str, org_ids: list[str] | None = Depends(get_org_ids)):
+    match = interviews_service.get_resume_match(interview_id, org_ids)
     if not match:
         raise HTTPException(status_code=404, detail="Resume match not found")
     return match
