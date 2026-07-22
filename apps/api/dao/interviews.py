@@ -10,7 +10,7 @@ def _generate_access_code() -> str:
     return "".join([str(secrets.randbelow(10)) for _ in range(8)])
 
 
-def fetch_all_interviews(limit: int, offset: int, org_ids: list[str]) -> tuple[list[dict], int]:
+def fetch_all_interviews(limit: int, offset: int, org_ids: list[str] | None) -> tuple[list[dict], int]:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
@@ -26,11 +26,11 @@ def fetch_all_interviews(limit: int, offset: int, org_ids: list[str]) -> tuple[l
                 FROM interviews i
                 LEFT JOIN candidates c ON c.id = i.candidate_id
                 LEFT JOIN jobs      j ON j.id = i.job_id
-                WHERE j.organization_id = ANY(%s::uuid[])
+                WHERE %s::uuid[] IS NULL OR j.organization_id = ANY(%s::uuid[])
                 ORDER BY i.created_at DESC
                 LIMIT %s OFFSET %s
                 """,
-                (org_ids, limit, offset),
+                (org_ids, org_ids, limit, offset),
             )
             return paginate_rows([dict(row) for row in cur.fetchall()])
 

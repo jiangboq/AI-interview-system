@@ -55,7 +55,7 @@ class JobDetail(BaseModel):
 
 
 @router.get("", response_model=list[Job])
-def list_jobs(org_ids: list[str] = Depends(get_org_ids)):
+def list_jobs(org_ids: list[str] | None = Depends(get_org_ids)):
     try:
         return jobs_service.get_all_jobs(org_ids)
     except Exception as e:
@@ -63,8 +63,8 @@ def list_jobs(org_ids: list[str] = Depends(get_org_ids)):
 
 
 @router.post("", response_model=Job, status_code=201)
-def create_job(req: CreateJobRequest, org_ids: list[str] = Depends(get_org_ids)):
-    if req.organization_id not in org_ids:
+def create_job(req: CreateJobRequest, org_ids: list[str] | None = Depends(get_org_ids)):
+    if org_ids is not None and req.organization_id not in org_ids:
         raise HTTPException(status_code=403, detail="Not a member of this organization")
     try:
         return jobs_service.create_job(req.title, req.description, req.level.value, req.organization_id)
@@ -73,7 +73,7 @@ def create_job(req: CreateJobRequest, org_ids: list[str] = Depends(get_org_ids))
 
 
 @router.get("/{job_id}", response_model=JobDetail)
-def get_job(job_id: str, org_ids: list[str] = Depends(get_org_ids)):
+def get_job(job_id: str, org_ids: list[str] | None = Depends(get_org_ids)):
     job = jobs_service.get_job(job_id, org_ids)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -81,8 +81,8 @@ def get_job(job_id: str, org_ids: list[str] = Depends(get_org_ids)):
 
 
 @router.patch("/{job_id}", response_model=Job)
-def update_job(job_id: str, req: UpdateJobRequest, org_ids: list[str] = Depends(get_org_ids)):
-    if req.organization_id not in org_ids:
+def update_job(job_id: str, req: UpdateJobRequest, org_ids: list[str] | None = Depends(get_org_ids)):
+    if org_ids is not None and req.organization_id not in org_ids:
         raise HTTPException(status_code=403, detail="Not a member of this organization")
     try:
         job = jobs_service.update_job(
