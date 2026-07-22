@@ -6,14 +6,14 @@ from service.resume_matcher import score_match
 
 
 def get_or_compute_match(candidate_id: str, job_id: str) -> dict | None:
-    job = jobs_dao.fetch_job_by_id(job_id)
+    job = jobs_dao.fetch_job_by_id_unscoped(job_id)
     if not job:
         return None
 
     if not job["parsed_requirements"]:
         requirements = parse_job_requirements(job["description"] or "")
         jobs_dao.update_job_parsed_requirements(job_id, requirements.model_dump())
-        job = jobs_dao.fetch_job_by_id(job_id)
+        job = jobs_dao.fetch_job_by_id_unscoped(job_id)
 
     blob = resume_blobs_dao.fetch_latest_parsed_blob_for_candidate(candidate_id)
     if not blob:

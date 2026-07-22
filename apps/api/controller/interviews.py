@@ -1,9 +1,10 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
-from deps import require_admin, require_auth
+from deps import get_org_ids, require_admin, require_auth
 from pagination import Page, PageParams
 from service import interviews as interviews_service
+from service import jobs as jobs_service
 
 router = APIRouter(prefix="/api/interviews", tags=["interviews"])
 
@@ -87,17 +88,21 @@ class ResumeMatchResponse(BaseModel):
     summary: str
 
 
-@router.get("", response_model=Page[InterviewRow], dependencies=[Depends(require_auth)])
-def list_interviews(page_params: PageParams = Depends()):
+@router.get("", response_model=Page[InterviewRow])
+def list_interviews(page_params: PageParams = Depends(), org_ids: list[str] = Depends(get_org_ids)):
     try:
-        items, total = interviews_service.get_all_interviews(page_params.limit, page_params.offset)
+        items, total = interviews_service.get_all_interviews(page_params.limit, page_params.offset, org_ids)
         return Page.create(items, total, page_params.page, page_params.page_size)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("", response_model=Interview, status_code=201, dependencies=[Depends(require_auth)])
-def create_interview(req: CreateInterviewRequest, background_tasks: BackgroundTasks):
+@router.post("", response_model=Interview, status_code=201)
+def create_interview(
+    req: CreateInterviewRequest, background_tasks: BackgroundTasks, org_ids: list[str] = Depends(get_org_ids)
+):
+    if not jobs_service.get_job(req.job_id, org_ids):
+        raise HTTPException(status_code=403, detail="Not authorized for this job's organization")
     try:
         interview = interviews_service.create_interview(req.candidate_id, req.job_id, req.expected_duration)
     except Exception as e:

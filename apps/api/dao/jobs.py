@@ -3,7 +3,7 @@ import psycopg2.extras
 from db import get_db
 
 
-def fetch_all_jobs() -> list[dict]:
+def fetch_all_jobs(org_ids: list[str]) -> list[dict]:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
@@ -12,8 +12,10 @@ def fetch_all_jobs() -> list[dict]:
                        j.organization_id::text, o.name AS organization_name
                 FROM jobs j
                 LEFT JOIN organizations o ON o.id = j.organization_id
+                WHERE j.organization_id = ANY(%s::uuid[])
                 ORDER BY o.name NULLS LAST, j.created_at DESC
-                """
+                """,
+                (org_ids,),
             )
             return [dict(row) for row in cur.fetchall()]
 
@@ -39,7 +41,26 @@ def insert_job(title: str, description: str, level: str, organization_id: str) -
             return dict(cur.fetchone())
 
 
-def fetch_job_by_id(job_id: str) -> dict | None:
+def fetch_job_by_id(job_id: str, org_ids: list[str]) -> dict | None:
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT j.id::text, j.title, j.description, j.level, j.interview_type, j.status,
+                       j.organization_id::text, o.name AS organization_name,
+                       j.parsed_requirements, j.created_at, j.updated_at
+                FROM jobs j
+                LEFT JOIN organizations o ON o.id = j.organization_id
+                WHERE j.id = %s AND j.organization_id = ANY(%s::uuid[])
+                """,
+                (job_id, org_ids),
+            )
+            row = cur.fetchone()
+            return dict(row) if row else None
+
+
+def fetch_job_by_id_unscoped(job_id: str) -> dict | None:
+    """Internal lookup with no org filter, for server-side flows without a request-scoped user."""
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
@@ -57,7 +78,9 @@ def fetch_job_by_id(job_id: str) -> dict | None:
             return dict(row) if row else None
 
 
-def update_job(job_id: str, title: str, description: str, level: str, organization_id: str) -> dict | None:
+def update_job(
+    job_id: str, title: str, description: str, level: str, organization_id: str, org_ids: list[str]
+) -> dict | None:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
@@ -65,7 +88,7 @@ def update_job(job_id: str, title: str, description: str, level: str, organizati
                 WITH updated AS (
                     UPDATE jobs
                     SET title = %s, description = %s, level = %s, organization_id = %s, updated_at = NOW()
-                    WHERE id = %s
+                    WHERE id = %s AND organization_id = ANY(%s::uuid[])
                     RETURNING id, title, description, level, organization_id
                 )
                 SELECT updated.id::text, updated.title, updated.description, updated.level,
@@ -73,7 +96,7 @@ def update_job(job_id: str, title: str, description: str, level: str, organizati
                 FROM updated
                 LEFT JOIN organizations o ON o.id = updated.organization_id
                 """,
-                (title, description, level, organization_id, job_id),
+                (title, description, level, organization_id, job_id, org_ids),
             )
             conn.commit()
             row = cur.fetchone()

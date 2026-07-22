@@ -1,3 +1,4 @@
+from dao import organization_users as organization_users_dao
 from dao import users as users_dao
 from service.auth import hash_password
 
@@ -10,5 +11,7 @@ def get_user_by_id(user_id: str) -> dict | None:
     return users_dao.fetch_user_by_id(user_id)
 
 
-def create_user(name: str, email: str, username: str, password: str, role: str) -> dict:
-    return users_dao.insert_user(name, email, username, hash_password(password), role)
+def create_user(name: str, email: str, username: str, password: str, role: str, organization_id: str) -> dict:
+    user = users_dao.insert_user(name, email, username, hash_password(password), role)
+    organization_users_dao.insert_membership(organization_id, user["id"], "recruiter")
+    return user
