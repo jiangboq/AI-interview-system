@@ -31,10 +31,13 @@ def require_admin(payload: dict = Depends(require_auth)) -> dict:
     return payload
 
 
-def get_org_ids(payload: dict = Depends(require_auth)) -> list[str]:
+def get_org_ids(payload: dict = Depends(require_auth)) -> list[str] | None:
     """Organization ids the current user belongs to, per organization_users.
 
     Membership alone grants org-scoped (HR user) access for now; org_role is
-    not yet used to differentiate behavior.
+    not yet used to differentiate behavior. Admins get `None`, meaning
+    unrestricted access to all organizations.
     """
+    if payload.get("role") == "admin":
+        return None
     return organization_users_dao.fetch_org_ids_for_user(payload["sub"])

@@ -14,7 +14,7 @@ from service import resume_match as resume_match_service
 logger = logging.getLogger("interviews")
 
 
-def get_all_interviews(limit: int, offset: int, org_ids: list[str]) -> tuple[list[dict], int]:
+def get_all_interviews(limit: int, offset: int, org_ids: list[str] | None) -> tuple[list[dict], int]:
     return interviews_dao.fetch_all_interviews(limit, offset, org_ids)
 
 

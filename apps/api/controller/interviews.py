@@ -89,7 +89,7 @@ class ResumeMatchResponse(BaseModel):
 
 
 @router.get("", response_model=Page[InterviewRow])
-def list_interviews(page_params: PageParams = Depends(), org_ids: list[str] = Depends(get_org_ids)):
+def list_interviews(page_params: PageParams = Depends(), org_ids: list[str] | None = Depends(get_org_ids)):
     try:
         items, total = interviews_service.get_all_interviews(page_params.limit, page_params.offset, org_ids)
         return Page.create(items, total, page_params.page, page_params.page_size)
@@ -99,7 +99,7 @@ def list_interviews(page_params: PageParams = Depends(), org_ids: list[str] = De
 
 @router.post("", response_model=Interview, status_code=201)
 def create_interview(
-    req: CreateInterviewRequest, background_tasks: BackgroundTasks, org_ids: list[str] = Depends(get_org_ids)
+    req: CreateInterviewRequest, background_tasks: BackgroundTasks, org_ids: list[str] | None = Depends(get_org_ids)
 ):
     if not jobs_service.get_job(req.job_id, org_ids):
         raise HTTPException(status_code=403, detail="Not authorized for this job's organization")
