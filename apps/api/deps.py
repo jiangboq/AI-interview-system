@@ -4,6 +4,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
+from dao import organization_users as organization_users_dao
+
 JWT_SECRET = os.getenv("JWT_SECRET", "changeme-secret")
 JWT_ALGORITHM = "HS256"
 
@@ -27,3 +29,12 @@ def require_admin(payload: dict = Depends(require_auth)) -> dict:
             detail="Admin role required",
         )
     return payload
+
+
+def get_org_ids(payload: dict = Depends(require_auth)) -> list[str]:
+    """Organization ids the current user belongs to, per organization_users.
+
+    Membership alone grants org-scoped (HR user) access for now; org_role is
+    not yet used to differentiate behavior.
+    """
+    return organization_users_dao.fetch_org_ids_for_user(payload["sub"])

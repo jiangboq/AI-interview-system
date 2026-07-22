@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { authHeaders } from "@/lib/auth";
@@ -12,6 +12,11 @@ const ROLES = [
   { value: "admin", label: "Admin" },
 ] as const;
 
+interface Organization {
+  id: string;
+  name: string | null;
+}
+
 export default function CreateUserPage() {
   const ready = useAuthGuard();
   const router = useRouter();
@@ -20,8 +25,24 @@ export default function CreateUserPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<(typeof ROLES)[number]["value"]>("recruiter");
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizationId, setOrganizationId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!ready) return;
+    fetch(`${API_URL}/api/organizations?page_size=100`, { headers: authHeaders() })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch organizations");
+        return res.json();
+      })
+      .then((data: { items: Organization[] }) => {
+        setOrganizations(data.items);
+        if (data.items.length > 0) setOrganizationId(data.items[0].id);
+      })
+      .catch(() => setError("Could not load organizations. Make sure the backend is running."));
+  }, [ready]);
 
   async function handleSubmit() {
     if (!name.trim() || !email.trim() || !username.trim() || !password.trim()) {
@@ -32,13 +53,17 @@ export default function CreateUserPage() {
       setError("Please enter a valid email address.");
       return;
     }
+    if (!organizationId) {
+      setError("Please select an organization.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ name, email, username, password, role }),
+        body: JSON.stringify({ name, email, username, password, role, organization_id: organizationId }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -106,6 +131,20 @@ export default function CreateUserPage() {
             {ROLES.map((r) => (
               <option key={r.value} value={r.value}>
                 {r.label}
+              </option>
+            ))}
+          </select>
+
+          <label style={styles.label}>Organization</label>
+          <select
+            style={styles.input}
+            value={organizationId}
+            onChange={(e) => { setOrganizationId(e.target.value); setError(""); }}
+          >
+            {organizations.length === 0 && <option value="">No organizations available</option>}
+            {organizations.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name ?? o.id}
               </option>
             ))}
           </select>
