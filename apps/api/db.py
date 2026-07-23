@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from contextlib import contextmanager
@@ -6,6 +7,8 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 import psycopg2
 import psycopg2.extras
 from psycopg2.pool import PoolError, ThreadedConnectionPool
+
+logger = logging.getLogger(__name__)
 
 
 def _with_default_sslmode(url: str, default_sslmode: str) -> str:
@@ -67,6 +70,10 @@ def get_db():
     conn = _acquire(pool)
     try:
         yield conn
+    except psycopg2.Error:
+        conn.rollback()
+        logger.exception("Database error, transaction rolled back")
+        raise
     except Exception:
         conn.rollback()
         raise
