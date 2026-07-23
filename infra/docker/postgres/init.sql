@@ -238,6 +238,8 @@ CREATE TABLE scorecards (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE INDEX idx_scorecards_interview_id ON scorecards(interview_id);
+
 -- =========================================
 -- scorecard_dimensions
 -- =========================================
