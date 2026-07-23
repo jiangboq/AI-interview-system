@@ -1,7 +1,11 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from service import auth as auth_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -23,4 +27,5 @@ def login(req: LoginRequest):
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
     except Exception as e:
+        logger.exception("Login failed for user %s", req.username)
         raise HTTPException(status_code=500, detail=str(e))

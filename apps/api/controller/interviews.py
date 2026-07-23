@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -5,6 +7,8 @@ from deps import get_org_ids, require_auth
 from pagination import Page, PageParams
 from service import interviews as interviews_service
 from service import jobs as jobs_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/interviews", tags=["interviews"])
 
@@ -94,6 +98,7 @@ def list_interviews(page_params: PageParams = Depends(), org_ids: list[str] | No
         items, total = interviews_service.get_all_interviews(page_params.limit, page_params.offset, org_ids)
         return Page.create(items, total, page_params.page, page_params.page_size)
     except Exception as e:
+        logger.exception("Failed to list interviews")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -106,6 +111,7 @@ def create_interview(
     try:
         interview = interviews_service.create_interview(req.candidate_id, req.job_id, req.expected_duration)
     except Exception as e:
+        logger.exception("Failed to create interview for candidate %s / job %s", req.candidate_id, req.job_id)
         raise HTTPException(status_code=500, detail=str(e))
     background_tasks.add_task(interviews_service.evaluate_resume_match, req.candidate_id, req.job_id)
     return interview
