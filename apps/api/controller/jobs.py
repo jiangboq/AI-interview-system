@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from enum import Enum
 
@@ -6,6 +7,8 @@ from pydantic import BaseModel
 
 from deps import get_org_ids, require_auth
 from service import jobs as jobs_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"], dependencies=[Depends(require_auth)])
 
@@ -59,6 +62,7 @@ def list_jobs(org_ids: list[str] | None = Depends(get_org_ids)):
     try:
         return jobs_service.get_all_jobs(org_ids)
     except Exception as e:
+        logger.exception("Failed to list jobs")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -69,6 +73,7 @@ def create_job(req: CreateJobRequest, org_ids: list[str] | None = Depends(get_or
     try:
         return jobs_service.create_job(req.title, req.description, req.level.value, req.organization_id)
     except Exception as e:
+        logger.exception("Failed to create job for organization %s", req.organization_id)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -89,6 +94,7 @@ def update_job(job_id: str, req: UpdateJobRequest, org_ids: list[str] | None = D
             job_id, req.title, req.description, req.level.value, req.organization_id, org_ids
         )
     except Exception as e:
+        logger.exception("Failed to update job %s", job_id)
         raise HTTPException(status_code=500, detail=str(e))
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")

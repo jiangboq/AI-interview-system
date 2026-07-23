@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -5,6 +6,8 @@ from pydantic import BaseModel
 
 from dao import transcripts as transcripts_dao
 from deps import require_auth
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/transcripts", tags=["transcripts"])
 
@@ -30,6 +33,7 @@ def append_turn(interview_id: str, req: TurnRequest):
     try:
         transcripts_dao.append_turn(interview_id, req.speaker, req.text, timestamp, req.section)
     except Exception as e:
+        logger.exception("Failed to append transcript turn for interview %s", interview_id)
         raise HTTPException(status_code=500, detail=str(e))
     return TurnResponse(
         interview_id=interview_id, speaker=req.speaker, text=req.text, timestamp=timestamp, section=req.section
