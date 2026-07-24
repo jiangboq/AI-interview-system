@@ -1,0 +1,81 @@
+# Production overrides. Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# `!override` replaces a base file's list value outright (default Compose
+# merge behavior concatenates lists instead, which would leave dev host
+# ports/env files in place alongside these).
+
+x-splunk-logging: &splunk-logging
+  driver: splunk
+  options:
+    splunk-url: ${SPLUNK_HEC_URL}
+    splunk-token: ${SPLUNK_HEC_TOKEN}
+    splunk-format: json
+    splunk-verify-connection: "true"
+    tag: "{{.Name}}"
+
+services:
+  mongo:
+    ports: !override []
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    logging: *splunk-logging
+
+  livekit:
+    ports: !override
+      - "7881:7881"
+      - "7882:7882/udp"
+    volumes: !override
+      - ./infra/docker/livekit/livekit.generated.yaml:/etc/livekit.yaml:ro
+    logging: *splunk-logging
+
+  postgres:
+    ports: !override []
+    logging: *splunk-logging
+
+  api:
+    ports: !override []
+    env_file: !override
+      - ./configs/prod.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      MONGO_URL: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017
+    logging: *splunk-logging
+
+  voice-agent:
+    env_file: !override
+      - ./configs/prod.env
+    logging: *splunk-logging
+
+  web:
+    ports: !override []
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    logging: *splunk-logging
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      DOMAIN_NAME: ${DOMAIN_NAME}
+      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+      - livekit
+    logging: *splunk-logging
+
+volumes:
+  caddy_data:
+  caddy_config:
