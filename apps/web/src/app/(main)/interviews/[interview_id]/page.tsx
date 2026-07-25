@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAdminGuard } from "@/lib/useAdminGuard";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 import { authHeaders } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -62,7 +62,7 @@ function formatDate(value: string | null): string {
 }
 
 export default function InterviewDetailPage() {
-  const ready = useAdminGuard();
+  const ready = useAuthGuard();
   const router = useRouter();
   const params = useParams<{ interview_id: string }>();
   const interviewId = params.interview_id;

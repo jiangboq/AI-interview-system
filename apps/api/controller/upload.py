@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 
@@ -18,6 +19,8 @@ from dao.resume_blobs import (
 from deps import require_auth
 from service.llm_resume_parser import parse_resume
 from service.resume_parser import extract_text
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/upload", tags=["upload"], dependencies=[Depends(require_auth)])
 
@@ -54,6 +57,7 @@ def _upload_s3(file: UploadFile, filename: str) -> str:
             ExtraArgs={"ContentType": file.content_type or "application/octet-stream"},
         )
     except (BotoCoreError, ClientError) as e:
+        logger.exception("S3 upload failed for %s", key)
         raise HTTPException(status_code=502, detail=f"S3 upload failed: {e}")
     return f"https://{_S3_BUCKET}.s3.{_S3_REGION}.amazonaws.com/{key}"
 
@@ -64,6 +68,7 @@ def _process_resume(blob_id: str, file_bytes: bytes, ext: str) -> None:
         raw_text = extract_text(file_bytes, ext)
         update_blob_done(blob_id, raw_text)
     except Exception as e:
+        logger.exception("Failed to extract text for resume blob %s", blob_id)
         update_blob_failed(blob_id, str(e))
         return
 
@@ -72,6 +77,7 @@ def _process_resume(blob_id: str, file_bytes: bytes, ext: str) -> None:
         parsed = parse_resume(raw_text)
         update_blob_parsed(blob_id, parsed.model_dump())
     except Exception as e:
+        logger.exception("Failed to parse resume for blob %s", blob_id)
         update_blob_parse_failed(blob_id, str(e))
 
 

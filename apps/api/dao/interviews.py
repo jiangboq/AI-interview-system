@@ -10,7 +10,7 @@ def _generate_access_code() -> str:
     return "".join([str(secrets.randbelow(10)) for _ in range(8)])
 
 
-def fetch_all_interviews(limit: int, offset: int) -> tuple[list[dict], int]:
+def fetch_all_interviews(limit: int, offset: int, org_ids: list[str] | None) -> tuple[list[dict], int]:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
@@ -26,10 +26,11 @@ def fetch_all_interviews(limit: int, offset: int) -> tuple[list[dict], int]:
                 FROM interviews i
                 LEFT JOIN candidates c ON c.id = i.candidate_id
                 LEFT JOIN jobs      j ON j.id = i.job_id
+                WHERE %s::uuid[] IS NULL OR j.organization_id = ANY(%s::uuid[])
                 ORDER BY i.created_at DESC
                 LIMIT %s OFFSET %s
                 """,
-                (limit, offset),
+                (org_ids, org_ids, limit, offset),
             )
             return paginate_rows([dict(row) for row in cur.fetchall()])
 
@@ -51,7 +52,7 @@ def insert_interview(candidate_id: str, job_id: str, expected_duration: int | No
             return dict(cur.fetchone())
 
 
-def fetch_interview(interview_id: str) -> dict | None:
+def fetch_interview(interview_id: str, org_ids: list[str] | None = None) -> dict | None:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
@@ -67,15 +68,15 @@ def fetch_interview(interview_id: str) -> dict | None:
                 FROM interviews i
                 LEFT JOIN candidates c ON c.id = i.candidate_id
                 LEFT JOIN jobs      j ON j.id = i.job_id
-                WHERE i.id = %s
+                WHERE i.id = %s AND (%s::uuid[] IS NULL OR j.organization_id = ANY(%s::uuid[]))
                 """,
-                (interview_id,),
+                (interview_id, org_ids, org_ids),
             )
             row = cur.fetchone()
             return dict(row) if row else None
 
 
-def fetch_interview_detail(interview_id: str) -> dict | None:
+def fetch_interview_detail(interview_id: str, org_ids: list[str] | None = None) -> dict | None:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
@@ -95,9 +96,9 @@ def fetch_interview_detail(interview_id: str) -> dict | None:
                 FROM interviews i
                 LEFT JOIN candidates c ON c.id = i.candidate_id
                 LEFT JOIN jobs      j ON j.id = i.job_id
-                WHERE i.id = %s
+                WHERE i.id = %s AND (%s::uuid[] IS NULL OR j.organization_id = ANY(%s::uuid[]))
                 """,
-                (interview_id,),
+                (interview_id, org_ids, org_ids),
             )
             row = cur.fetchone()
             return dict(row) if row else None

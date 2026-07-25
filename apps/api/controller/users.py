@@ -26,6 +26,7 @@ class CreateUserRequest(BaseModel):
     username: str
     password: str
     role: Literal["candidate", "recruiter", "admin"] = "candidate"
+    organization_id: str
 
 
 @router.get("", response_model=Page[User])
@@ -48,6 +49,8 @@ def get_current_user(payload: dict = Depends(require_auth)):
 @router.post("", response_model=User, status_code=201)
 def create_user(req: CreateUserRequest):
     try:
-        return users_service.create_user(req.name, req.email, req.username, req.password, req.role)
+        return users_service.create_user(
+            req.name, req.email, req.username, req.password, req.role, req.organization_id
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

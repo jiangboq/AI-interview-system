@@ -118,7 +118,7 @@ async def ensure_session(req: SessionRequest) -> SessionResponse:
             )
             logger.info("Agent dispatched for room: %s", req.room_name)
     except Exception as e:
-        logger.error("Failed to create room or dispatch agent for %s: %s", req.room_name, e)
+        logger.exception("Failed to create room or dispatch agent for %s", req.room_name)
         raise HTTPException(status_code=500, detail=str(e))
 
     return SessionResponse(room_name=req.room_name, dispatched=True)

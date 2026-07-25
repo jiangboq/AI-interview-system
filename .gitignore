@@ -3,6 +3,9 @@ uploads/
 
 # Environment secrets
 configs/dev.env
+configs/prod.env
+.env
+infra/docker/livekit/livekit.generated.yaml
 
 # Node.js / Next.js
 node_modules/

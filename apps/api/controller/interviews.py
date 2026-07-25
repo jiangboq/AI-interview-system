@@ -1,9 +1,14 @@
+import logging
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
-from deps import require_admin, require_auth
+from deps import get_org_ids, require_auth
 from pagination import Page, PageParams
 from service import interviews as interviews_service
+from service import jobs as jobs_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/interviews", tags=["interviews"])
 
@@ -87,20 +92,26 @@ class ResumeMatchResponse(BaseModel):
     summary: str
 
 
-@router.get("", response_model=Page[InterviewRow], dependencies=[Depends(require_auth)])
-def list_interviews(page_params: PageParams = Depends()):
+@router.get("", response_model=Page[InterviewRow])
+def list_interviews(page_params: PageParams = Depends(), org_ids: list[str] | None = Depends(get_org_ids)):
     try:
-        items, total = interviews_service.get_all_interviews(page_params.limit, page_params.offset)
+        items, total = interviews_service.get_all_interviews(page_params.limit, page_params.offset, org_ids)
         return Page.create(items, total, page_params.page, page_params.page_size)
     except Exception as e:
+        logger.exception("Failed to list interviews")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("", response_model=Interview, status_code=201, dependencies=[Depends(require_auth)])
-def create_interview(req: CreateInterviewRequest, background_tasks: BackgroundTasks):
+@router.post("", response_model=Interview, status_code=201)
+def create_interview(
+    req: CreateInterviewRequest, background_tasks: BackgroundTasks, org_ids: list[str] | None = Depends(get_org_ids)
+):
+    if not jobs_service.get_job(req.job_id, org_ids):
+        raise HTTPException(status_code=403, detail="Not authorized for this job's organization")
     try:
         interview = interviews_service.create_interview(req.candidate_id, req.job_id, req.expected_duration)
     except Exception as e:
+        logger.exception("Failed to create interview for candidate %s / job %s", req.candidate_id, req.job_id)
         raise HTTPException(status_code=500, detail=str(e))
     background_tasks.add_task(interviews_service.evaluate_resume_match, req.candidate_id, req.job_id)
     return interview
@@ -141,25 +152,25 @@ def get_interview_resume(interview_id: str):
     return resume
 
 
-@router.get("/{interview_id}", response_model=InterviewDetail, dependencies=[Depends(require_admin)])
-def get_interview_detail(interview_id: str):
-    interview = interviews_service.get_interview_detail(interview_id)
+@router.get("/{interview_id}", response_model=InterviewDetail)
+def get_interview_detail(interview_id: str, org_ids: list[str] | None = Depends(get_org_ids)):
+    interview = interviews_service.get_interview_detail(interview_id, org_ids)
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
     return interview
 
 
-@router.get("/{interview_id}/scorecard", response_model=ScoreCardResponse, dependencies=[Depends(require_admin)])
-def get_scorecard(interview_id: str):
-    scorecard = interviews_service.get_scorecard(interview_id)
+@router.get("/{interview_id}/scorecard", response_model=ScoreCardResponse)
+def get_scorecard(interview_id: str, org_ids: list[str] | None = Depends(get_org_ids)):
+    scorecard = interviews_service.get_scorecard(interview_id, org_ids)
     if not scorecard:
         raise HTTPException(status_code=404, detail="Scorecard not found")
     return scorecard
 
 
-@router.get("/{interview_id}/resume-match", response_model=ResumeMatchResponse, dependencies=[Depends(require_admin)])
-def get_resume_match(interview_id: str):
-    match = interviews_service.get_resume_match(interview_id)
+@router.get("/{interview_id}/resume-match", response_model=ResumeMatchResponse)
+def get_resume_match(interview_id: str, org_ids: list[str] | None = Depends(get_org_ids)):
+    match = interviews_service.get_resume_match(interview_id, org_ids)
     if not match:
         raise HTTPException(status_code=404, detail="Resume match not found")
     return match

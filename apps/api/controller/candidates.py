@@ -1,9 +1,13 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from deps import require_auth
 from pagination import Page, PageParams
 from service import candidates as candidates_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"], dependencies=[Depends(require_auth)])
 
@@ -27,6 +31,7 @@ def list_candidates(page_params: PageParams = Depends()):
         items, total = candidates_service.get_all_candidates(page_params.limit, page_params.offset)
         return Page.create(items, total, page_params.page, page_params.page_size)
     except Exception as e:
+        logger.exception("Failed to list candidates")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -35,4 +40,5 @@ def create_candidate(req: CreateCandidateRequest):
     try:
         return candidates_service.create_candidate(req.full_name, req.email, req.resume_url)
     except Exception as e:
+        logger.exception("Failed to create candidate %s", req.email)
         raise HTTPException(status_code=500, detail=str(e))

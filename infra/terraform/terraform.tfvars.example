@@ -1,0 +1,31 @@
+# Copy to terraform.tfvars (gitignored) and fill in real values.
+# terraform.tfvars is never committed — it holds secrets.
+
+aws_region    = "us-east-1"
+instance_type = "t3.large" # bump to t3.xlarge if memory-constrained
+
+domain_name      = "example.com" # must already be hosted in Route 53
+caddy_acme_email = "you@example.com"
+
+github_repo = "jiangboq/AI-interview-system"
+git_branch  = "main"
+github_pat  = "" # only needed if the repo is private
+
+postgres_user     = "interview"
+postgres_password = "CHANGE_ME"
+postgres_db       = "interview"
+
+mongo_root_username = "interview"
+mongo_root_password = "CHANGE_ME"
+
+secret_key = "CHANGE_ME" # JWT signing secret, e.g. `openssl rand -hex 32`
+
+anthropic_api_key = "CHANGE_ME"
+anthropic_model   = "claude-sonnet-5"
+openai_api_key    = "CHANGE_ME"
+
+livekit_api_key    = "CHANGE_ME"
+livekit_api_secret = "CHANGE_ME"
+
+splunk_hec_url   = "https://http-inputs-xxx.splunkcloud.com:443"
+splunk_hec_token = "CHANGE_ME"
