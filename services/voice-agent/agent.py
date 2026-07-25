@@ -184,6 +184,10 @@ class SectionAgent(Agent):
         state.section_started_at = time.monotonic()
         if self.transition_ack:
             self.session.say(self.transition_ack, add_to_chat_ctx=True)
+            # Returning an Agent from a function_tool (our section handoff) does not
+            # trigger an automatic follow-up reply, so prompt this section's opening
+            # question ourselves instead of waiting for the candidate to speak first.
+            self.session.generate_reply()
         self._watchdog_task = asyncio.create_task(self._run_watchdog())
 
     async def on_exit(self) -> None:
