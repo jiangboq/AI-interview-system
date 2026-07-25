@@ -165,6 +165,10 @@ def _qa_instructions(state: InterviewState) -> str:
 
 class SectionAgent(Agent):
     section_name = ""
+    # Spoken immediately on entry, before the LLM has produced this section's real
+    # opening line, so the candidate hears something right away instead of dead air
+    # while the transition reply is generated.
+    transition_ack: str | None = None
 
     def __init__(self, instructions: str, budget_sec: int) -> None:
         super().__init__(instructions=instructions)
@@ -178,6 +182,8 @@ class SectionAgent(Agent):
         state: InterviewState = self.session.userdata
         state.current_section = self.section_name
         state.section_started_at = time.monotonic()
+        if self.transition_ack:
+            self.session.say(self.transition_ack, add_to_chat_ctx=True)
         self._watchdog_task = asyncio.create_task(self._run_watchdog())
 
     async def on_exit(self) -> None:
@@ -221,6 +227,7 @@ class IntroAgent(SectionAgent):
 
 class ProjectAgent(SectionAgent):
     section_name = "project"
+    transition_ack = "Great, thank you for sharing that."
 
     def __init__(self, state: InterviewState) -> None:
         super().__init__(_project_instructions(state), _section_budget_sec(state, "project"))
@@ -236,6 +243,7 @@ class ProjectAgent(SectionAgent):
 
 class BehavioralAgent(SectionAgent):
     section_name = "behavioral"
+    transition_ack = "Thanks, that's really helpful context."
 
     def __init__(self, state: InterviewState) -> None:
         super().__init__(_behavioral_instructions(state), _section_budget_sec(state, "behavioral"))
@@ -251,6 +259,7 @@ class BehavioralAgent(SectionAgent):
 
 class QAAgent(SectionAgent):
     section_name = "qa"
+    transition_ack = "Great, thank you."
 
     def __init__(self, state: InterviewState) -> None:
         super().__init__(_qa_instructions(state), _section_budget_sec(state, "qa"))
