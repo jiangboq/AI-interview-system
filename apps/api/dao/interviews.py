@@ -128,6 +128,7 @@ def fetch_interview_by_token(token: str) -> dict | None:
                     i.status,
                     i.access_code,
                     c.full_name  AS candidate_name,
+                    c.email      AS candidate_email,
                     j.title      AS job_title,
                     j.level      AS job_level
                 FROM interviews i

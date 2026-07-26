@@ -132,6 +132,9 @@ def confirm_candidate_email(token: str, req: CandidateConfirmRequest):
         raise HTTPException(status_code=404, detail="Interview not found")
     if not req.email or "@" not in req.email:
         raise HTTPException(status_code=400, detail="Valid email is required")
+    candidate_email = interview.get("candidate_email")
+    if not candidate_email or req.email.strip().lower() != candidate_email.strip().lower():
+        raise HTTPException(status_code=400, detail="Email does not match our records")
     if req.code != interview.get("access_code"):
         raise HTTPException(status_code=400, detail="Invalid access code")
     return {"message": "Email confirmed", "interview_id": interview["id"]}
