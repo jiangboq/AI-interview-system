@@ -6,7 +6,7 @@ from jose import jwt
 
 from dao import users as users_dao
 
-JWT_SECRET = os.getenv("JWT_SECRET", "changeme-secret")
+JWT_SECRET = os.getenv("SECRET_KEY", "changeme-secret")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_MINUTES = 60
 
