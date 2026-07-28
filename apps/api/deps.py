@@ -6,7 +6,7 @@ from jose import JWTError, jwt
 
 from dao import organization_users as organization_users_dao
 
-JWT_SECRET = os.getenv("JWT_SECRET", "changeme-secret")
+JWT_SECRET = os.getenv("SECRET_KEY", "changeme-secret")
 JWT_ALGORITHM = "HS256"
 
 _bearer = HTTPBearer()
