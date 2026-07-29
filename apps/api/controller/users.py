@@ -3,7 +3,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from deps import require_auth
+from deps import require_admin, require_auth
 from pagination import Page, PageParams
 from pydantic import BaseModel
 from service import users as users_service
@@ -46,7 +46,7 @@ def get_current_user(payload: dict = Depends(require_auth)):
     return user
 
 
-@router.post("", response_model=User, status_code=201)
+@router.post("", response_model=User, status_code=201, dependencies=[Depends(require_admin)])
 def create_user(req: CreateUserRequest):
     try:
         return users_service.create_user(

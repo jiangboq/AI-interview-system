@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/useAuthGuard";
-import { authHeaders } from "@/lib/auth";
+import { authHeaders, isAdmin } from "@/lib/auth";
 import { DEFAULT_PAGE_SIZE, Page } from "@/lib/pagination";
 import Pagination from "@/components/Pagination";
 
@@ -63,9 +63,11 @@ export default function UsersPage() {
             <h1 style={styles.title}>Users</h1>
             <p style={styles.subtitle}>{loading ? "Loading…" : `${total} users total`}</p>
           </div>
-          <button style={styles.createButton} onClick={() => router.push("/create_user")}>
-            Add User
-          </button>
+          {isAdmin() && (
+            <button style={styles.createButton} onClick={() => router.push("/create_user")}>
+              Add User
+            </button>
+          )}
         </div>
 
         {error && <p style={styles.error}>{error}</p>}
