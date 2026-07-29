@@ -1,8 +1,9 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from deps import require_auth
 from service import auth as auth_service
 
 logger = logging.getLogger(__name__)
@@ -29,3 +30,12 @@ def login(req: LoginRequest):
     except Exception as e:
         logger.exception("Login failed for user %s", req.username)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/refresh", response_model=LoginResponse)
+def refresh(payload: dict = Depends(require_auth)):
+    """Reissue a token with a renewed expiry. Called by the frontend on user
+    activity so the session stays alive; if it stops being called (user idle),
+    the existing token expires after ACCESS_TOKEN_EXPIRE_MINUTES."""
+    token = auth_service.refresh(payload)
+    return LoginResponse(token=token)

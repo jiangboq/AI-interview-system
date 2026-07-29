@@ -8,11 +8,23 @@ from dao import users as users_dao
 
 JWT_SECRET = os.getenv("SECRET_KEY", "changeme-secret")
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRY_MINUTES = 60
+JWT_EXPIRY_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
+
+
+def _issue_token(user_id: str, username: str, role: str) -> str:
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": user_id,
+        "username": username,
+        "role": role,
+        "iat": now,
+        "exp": now + timedelta(minutes=JWT_EXPIRY_MINUTES),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
 def login(username: str, password: str) -> str:
@@ -20,10 +32,9 @@ def login(username: str, password: str) -> str:
     if not user or user["password_hash"] != hash_password(password):
         raise ValueError("Invalid username or password")
 
-    payload = {
-        "sub": user["id"],
-        "username": user["username"],
-        "role": user["role"],
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRY_MINUTES),
-    }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return _issue_token(user["id"], user["username"], user["role"])
+
+
+def refresh(payload: dict) -> str:
+    """Reissue a token with a renewed expiry, extending the session on activity."""
+    return _issue_token(payload["sub"], payload["username"], payload["role"])
