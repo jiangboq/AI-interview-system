@@ -5,3 +5,4 @@ livekit-plugins-openai>=1.0.0
 livekit-plugins-ai-coustics>=0.1.0
 livekit-plugins-turn-detector>=0.1.0
 python-dotenv>=1.0.0
+python-jose[cryptography]==3.3.0

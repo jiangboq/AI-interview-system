@@ -30,6 +30,7 @@ export default function CandidateInterviewPage() {
   const [livekitToken, setLivekitToken] = useState("");
   const [livekitUrl, setLivekitUrl] = useState("");
   const [consentChecked, setConsentChecked] = useState(false);
+  const [candidateToken, setCandidateToken] = useState("");
 
   useEffect(() => {
     async function loadInterview() {
@@ -72,6 +73,8 @@ export default function CandidateInterviewPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.detail ?? "Failed to confirm email");
       }
+      const data = await res.json();
+      setCandidateToken(data.candidate_token);
       setPageState("confirmed");
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : "Something went wrong.");
@@ -85,7 +88,10 @@ export default function CandidateInterviewPage() {
     try {
       const sessionRes = await fetch(`${API_URL}/api/livekit/session`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${candidateToken}`,
+        },
         body: JSON.stringify({
           room_name: token,
           interview_id: interview?.id,
@@ -100,7 +106,10 @@ export default function CandidateInterviewPage() {
 
       const res = await fetch(`${API_URL}/api/livekit/token`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${candidateToken}`,
+        },
         body: JSON.stringify({
           room_name: token,
           participant_name: email,
