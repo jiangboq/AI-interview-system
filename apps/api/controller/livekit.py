@@ -4,10 +4,12 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from livekit import api as lkapi
 from livekit.api import AccessToken, VideoGrants
 from pydantic import BaseModel
+
+from deps import require_candidate
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +74,13 @@ class SessionResponse(BaseModel):
 
 
 @router.post("/token", response_model=TokenResponse)
-def generate_token(req: TokenRequest) -> TokenResponse:
+def generate_token(req: TokenRequest, candidate: dict = Depends(require_candidate)) -> TokenResponse:
     api_key, api_secret, _ws_url, public_url = _livekit_config()
 
     if not req.room_name or not req.participant_name:
         raise HTTPException(status_code=400, detail="room_name and participant_name are required")
+    if req.room_name != candidate.get("invite_token"):
+        raise HTTPException(status_code=403, detail="Not authorized for this room")
 
     token = (
         AccessToken(api_key, api_secret)
@@ -91,7 +95,10 @@ def generate_token(req: TokenRequest) -> TokenResponse:
 
 
 @router.post("/session", response_model=SessionResponse)
-async def ensure_session(req: SessionRequest) -> SessionResponse:
+async def ensure_session(req: SessionRequest, candidate: dict = Depends(require_candidate)) -> SessionResponse:
+    if req.room_name != candidate.get("invite_token") or req.interview_id != candidate.get("interview_id"):
+        raise HTTPException(status_code=403, detail="Not authorized for this interview")
+
     api_key, api_secret, ws_url, _public_url = _livekit_config()
     http_url = ws_url.replace("wss://", "https://").replace("ws://", "http://")
 

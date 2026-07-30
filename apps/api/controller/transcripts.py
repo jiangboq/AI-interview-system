@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from dao import transcripts as transcripts_dao
-from deps import require_auth
+from deps import require_auth, require_service
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class TurnResponse(BaseModel):
     section: str | None = None
 
 
-@router.post("/{interview_id}/turns", response_model=TurnResponse, status_code=201)
+@router.post("/{interview_id}/turns", response_model=TurnResponse, status_code=201, dependencies=[Depends(require_service)])
 def append_turn(interview_id: str, req: TurnRequest):
     timestamp = req.timestamp or datetime.now(timezone.utc).isoformat()
     try:

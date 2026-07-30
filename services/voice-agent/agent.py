@@ -4,10 +4,11 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from dotenv import load_dotenv
+from jose import jwt
 from livekit import agents
 from livekit.agents import (
     Agent,
@@ -25,9 +26,21 @@ from livekit.plugins import ai_coustics, openai, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+JWT_SECRET = os.getenv("SECRET_KEY", "changeme-secret")
+JWT_ALGORITHM = "HS256"
 
 load_dotenv()
 logger = logging.getLogger("voice-agent")
+
+
+def _service_auth_headers() -> dict[str, str]:
+    """Self-signs a short-lived service token (using the SECRET_KEY shared with the
+    API, via docker-compose's dev.env) so the API can tell these calls apart from
+    an anonymous candidate or the public internet."""
+    now = datetime.now(timezone.utc)
+    payload = {"role": "service", "iat": now, "exp": now + timedelta(minutes=5)}
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return {"Authorization": f"Bearer {token}"}
 
 DEFAULT_INTERVIEW_DURATION_SEC = 30 * 60
 
@@ -96,7 +109,11 @@ def _format_resume_summary(resume: dict | None) -> str:
 async def _fetch_resume(interview_id: str) -> dict | None:
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{API_URL}/api/interviews/{interview_id}/resume", timeout=5)
+            resp = await client.get(
+                f"{API_URL}/api/interviews/{interview_id}/resume",
+                headers=_service_auth_headers(),
+                timeout=5,
+            )
             if resp.status_code == 404:
                 return None
             resp.raise_for_status()
@@ -326,6 +343,7 @@ async def interview_agent(ctx: agents.JobContext):
                     resp = await client.post(
                         f"{API_URL}/api/transcripts/{interview_id}/turns",
                         json={"speaker": speaker, "text": text, "timestamp": timestamp, "section": section},
+                        headers=_service_auth_headers(),
                         timeout=5,
                     )
                     resp.raise_for_status()
@@ -347,7 +365,11 @@ async def interview_agent(ctx: agents.JobContext):
         async def _mark_interview_ended() -> None:
             try:
                 async with httpx.AsyncClient() as client:
-                    resp = await client.post(f"{API_URL}/api/interviews/{interview_id}/end", timeout=5)
+                    resp = await client.post(
+                        f"{API_URL}/api/interviews/{interview_id}/end",
+                        headers=_service_auth_headers(),
+                        timeout=5,
+                    )
                     resp.raise_for_status()
             except Exception:
                 logger.exception("Failed to mark interview %s as ended", interview_id)
