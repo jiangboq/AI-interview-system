@@ -3,8 +3,9 @@ import logging
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
-from deps import get_org_ids, require_auth
+from deps import get_org_ids, require_auth, require_service
 from pagination import Page, PageParams
+from service import auth as auth_service
 from service import interviews as interviews_service
 from service import jobs as jobs_service
 
@@ -137,17 +138,18 @@ def confirm_candidate_email(token: str, req: CandidateConfirmRequest):
         raise HTTPException(status_code=400, detail="Email does not match our records")
     if req.code != interview.get("access_code"):
         raise HTTPException(status_code=400, detail="Invalid access code")
-    return {"message": "Email confirmed", "interview_id": interview["id"]}
+    candidate_token = auth_service.issue_candidate_token(interview["id"], token)
+    return {"message": "Email confirmed", "interview_id": interview["id"], "candidate_token": candidate_token}
 
 
-@router.post("/{interview_id}/end", status_code=202)
+@router.post("/{interview_id}/end", status_code=202, dependencies=[Depends(require_service)])
 def end_interview(interview_id: str, background_tasks: BackgroundTasks):
     interviews_service.end_interview(interview_id)
     background_tasks.add_task(interviews_service.score_interview, interview_id)
     return {"message": "Interview ended, scoring in progress", "interview_id": interview_id}
 
 
-@router.get("/{interview_id}/resume")
+@router.get("/{interview_id}/resume", dependencies=[Depends(require_service)])
 def get_interview_resume(interview_id: str):
     resume = interviews_service.get_interview_resume(interview_id)
     if not resume:

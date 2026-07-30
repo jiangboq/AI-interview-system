@@ -29,6 +29,8 @@ export default function CandidateInterviewPage() {
   const [formError, setFormError] = useState("");
   const [livekitToken, setLivekitToken] = useState("");
   const [livekitUrl, setLivekitUrl] = useState("");
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [candidateToken, setCandidateToken] = useState("");
 
   useEffect(() => {
     async function loadInterview() {
@@ -71,6 +73,8 @@ export default function CandidateInterviewPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.detail ?? "Failed to confirm email");
       }
+      const data = await res.json();
+      setCandidateToken(data.candidate_token);
       setPageState("confirmed");
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : "Something went wrong.");
@@ -84,7 +88,10 @@ export default function CandidateInterviewPage() {
     try {
       const sessionRes = await fetch(`${API_URL}/api/livekit/session`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${candidateToken}`,
+        },
         body: JSON.stringify({
           room_name: token,
           interview_id: interview?.id,
@@ -99,7 +106,10 @@ export default function CandidateInterviewPage() {
 
       const res = await fetch(`${API_URL}/api/livekit/token`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${candidateToken}`,
+        },
         body: JSON.stringify({
           room_name: token,
           participant_name: email,
@@ -160,6 +170,9 @@ export default function CandidateInterviewPage() {
         {pageState === "email_form" && interview && (
           <>
             <div style={styles.interviewMeta}>
+              {interview.candidate_name && (
+                <p style={styles.candidateGreeting}>Hi {interview.candidate_name},</p>
+              )}
               <p style={styles.roleLabel}>You have been invited to interview for</p>
               <h1 style={styles.jobTitle}>{interview.job_title ?? "a position"}</h1>
               {interview.job_level && (
@@ -210,10 +223,31 @@ export default function CandidateInterviewPage() {
             <p style={styles.hint}>
               Your email has been confirmed. Click below when you are ready to begin.
             </p>
+
+            <div style={styles.consentBox}>
+              <p style={styles.consentTitle}>Privacy notice</p>
+              <ul style={styles.consentList}>
+                <li>We will not record your voice.</li>
+                <li>We will collect the transcript of this interview for evaluation purposes.</li>
+              </ul>
+              <label style={styles.consentLabel}>
+                <input
+                  type="checkbox"
+                  checked={consentChecked}
+                  onChange={(e) => setConsentChecked(e.target.checked)}
+                />
+                I have read and agree to the above.
+              </label>
+            </div>
+
             {formError && <p style={styles.error}>{formError}</p>}
             <button
-              style={pageState === "starting" ? { ...styles.button, opacity: 0.7, cursor: "not-allowed" } : styles.button}
-              disabled={pageState === "starting"}
+              style={
+                pageState === "starting" || !consentChecked
+                  ? { ...styles.button, opacity: 0.7, cursor: "not-allowed" }
+                  : styles.button
+              }
+              disabled={pageState === "starting" || !consentChecked}
               onClick={startInterview}
             >
               {pageState === "starting" ? "Starting…" : "Start Interview"}
@@ -344,6 +378,12 @@ const styles: Record<string, React.CSSProperties> = {
   interviewMeta: {
     marginBottom: "2rem",
   },
+  candidateGreeting: {
+    margin: "0 0 0.5rem",
+    fontSize: "1rem",
+    color: "#1a1a2e",
+    fontWeight: 600,
+  },
   roleLabel: {
     margin: "0 0 0.5rem",
     fontSize: "0.875rem",
@@ -437,5 +477,37 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     fontSize: "1.5rem",
     color: "#1a1a2e",
+  },
+  consentBox: {
+    width: "100%",
+    textAlign: "left" as const,
+    background: "#f8f9fa",
+    border: "1px solid #e9ecef",
+    borderRadius: "8px",
+    padding: "1rem 1.25rem",
+    boxSizing: "border-box" as const,
+  },
+  consentTitle: {
+    margin: "0 0 0.5rem",
+    fontSize: "0.875rem",
+    fontWeight: 700,
+    color: "#1a1a2e",
+  },
+  consentList: {
+    margin: "0 0 0.75rem",
+    paddingLeft: "1.1rem",
+    fontSize: "0.875rem",
+    color: "#495057",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "0.35rem",
+  },
+  consentLabel: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "0.5rem",
+    fontSize: "0.875rem",
+    color: "#333",
+    cursor: "pointer",
   },
 };
