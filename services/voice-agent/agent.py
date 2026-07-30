@@ -42,6 +42,7 @@ def _service_auth_headers() -> dict[str, str]:
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return {"Authorization": f"Bearer {token}"}
 
+
 DEFAULT_INTERVIEW_DURATION_SEC = 30 * 60
 
 # Share of the total interview duration allotted to each section.
