@@ -22,6 +22,7 @@ interface Interview {
   candidate_name: string | null;
   job_id: string | null;
   job_title: string | null;
+  template_name: string | null;
   status: string | null;
   created_at: string;
 }
@@ -83,6 +84,7 @@ export default function InterviewsPage() {
                 <tr>
                   <th style={styles.th}>Candidate</th>
                   <th style={styles.th}>Position</th>
+                  <th style={styles.th}>Type</th>
                   <th style={styles.th}>Status</th>
                   <th style={styles.th}>Created</th>
                   <th style={styles.th}>Details</th>
@@ -107,6 +109,7 @@ export default function InterviewsPage() {
                           iv.job_title ?? "—"
                         )}
                       </td>
+                      <td style={styles.td}>{iv.template_name ?? "—"}</td>
                       <td style={styles.td}>
                         <span style={{ ...styles.badge, background: badge.bg, color: badge.text }}>
                           {status.replace("_", " ")}

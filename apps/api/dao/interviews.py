@@ -20,12 +20,14 @@ def fetch_all_interviews(limit: int, offset: int, org_ids: list[str] | None) -> 
                     c.full_name  AS candidate_name,
                     j.id::text   AS job_id,
                     j.title      AS job_title,
+                    t.name       AS template_name,
                     i.status,
                     i.created_at::text,
                     COUNT(*) OVER() AS total_count
                 FROM interviews i
                 LEFT JOIN candidates c ON c.id = i.candidate_id
                 LEFT JOIN jobs      j ON j.id = i.job_id
+                LEFT JOIN interview_templates t ON t.id = i.template_id
                 WHERE %s::uuid[] IS NULL OR j.organization_id = ANY(%s::uuid[])
                 ORDER BY i.created_at DESC
                 LIMIT %s OFFSET %s

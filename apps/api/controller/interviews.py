@@ -19,6 +19,7 @@ class InterviewRow(BaseModel):
     candidate_name: str | None
     job_id: str | None
     job_title: str | None
+    template_name: str | None
     status: str | None
     created_at: str
 
