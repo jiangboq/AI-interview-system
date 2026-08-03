@@ -24,6 +24,10 @@ class InterviewTemplate(BaseModel):
     updated_at: str
 
 
+class InterviewTemplateDetail(InterviewTemplate):
+    config_json: dict | None
+
+
 @router.get("", response_model=list[InterviewTemplate])
 def list_templates(org_ids: list[str] | None = Depends(get_org_ids)):
     try:
@@ -31,3 +35,11 @@ def list_templates(org_ids: list[str] | None = Depends(get_org_ids)):
     except Exception as e:
         logger.exception("Failed to list templates")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{template_id}", response_model=InterviewTemplateDetail)
+def get_template(template_id: str, org_ids: list[str] | None = Depends(get_org_ids)):
+    template = templates_service.get_template(template_id, org_ids)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return template
