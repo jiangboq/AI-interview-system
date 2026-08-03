@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { authHeaders } from "@/lib/auth";
 
@@ -33,6 +34,7 @@ function groupTemplatesByScope(
 
 export default function TemplatesPage() {
   const ready = useAuthGuard();
+  const router = useRouter();
   const [templates, setTemplates] = useState<InterviewTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -81,6 +83,12 @@ export default function TemplatesPage() {
                   <p style={styles.meta}>
                     {template.duration_minutes ? `${template.duration_minutes} minutes` : "Duration not set"}
                   </p>
+                  <button
+                    style={styles.viewButton}
+                    onClick={() => router.push(`/template/${template.id}`)}
+                  >
+                    View Details
+                  </button>
                 </div>
               ))}
             </div>
@@ -164,5 +172,17 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     fontSize: "0.85rem",
     color: "#6c757d",
+  },
+  viewButton: {
+    alignSelf: "flex-start",
+    marginTop: "0.25rem",
+    padding: "0.5rem 1rem",
+    borderRadius: "8px",
+    border: "1px solid #4f46e5",
+    background: "#fff",
+    color: "#4f46e5",
+    fontSize: "0.875rem",
+    fontWeight: 600,
+    cursor: "pointer",
   },
 };
