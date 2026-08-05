@@ -61,9 +61,12 @@ export default function CandidateInterviewPage() {
   }, [token]);
 
   useEffect(() => {
+    if (!candidateToken) return;
     async function loadConsentRecord() {
       try {
-        const res = await fetch(`${API_URL}/api/consent-records/${CONSENT_VERSION}`);
+        const res = await fetch(`${API_URL}/api/consent-records/${CONSENT_VERSION}`, {
+          headers: { Authorization: `Bearer ${candidateToken}` },
+        });
         if (!res.ok) return;
         const data: ConsentRecord = await res.json();
         setConsentRecord(data);
@@ -72,7 +75,7 @@ export default function CandidateInterviewPage() {
       }
     }
     loadConsentRecord();
-  }, []);
+  }, [candidateToken]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

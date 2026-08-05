@@ -1,13 +1,14 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from deps import require_candidate
 from service import consent_records as consent_records_service
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/consent-records", tags=["consent-records"])
+router = APIRouter(prefix="/api/consent-records", tags=["consent-records"], dependencies=[Depends(require_candidate)])
 
 
 class ConsentRecord(BaseModel):
