@@ -112,6 +112,12 @@ export default function CandidateInterviewPage() {
   async function startInterview() {
     setPageState("starting");
     try {
+      const consentRes = await fetch(`${API_URL}/api/consent-records/${CONSENT_VERSION}/agree`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${candidateToken}` },
+      });
+      if (!consentRes.ok) throw new Error("Failed to record consent");
+
       const sessionRes = await fetch(`${API_URL}/api/livekit/session`, {
         method: "POST",
         headers: {

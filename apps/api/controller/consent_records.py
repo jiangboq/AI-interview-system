@@ -18,9 +18,25 @@ class ConsentRecord(BaseModel):
     created_at: str
 
 
+class UserConsent(BaseModel):
+    id: str
+    candidate_id: str
+    consent_id: str
+    interview_id: str
+    agreed_at: str
+
+
 @router.get("/{version}", response_model=ConsentRecord)
 def get_consent_record(version: str):
     consent_record = consent_records_service.get_consent_record(version)
     if not consent_record:
         raise HTTPException(status_code=404, detail="Consent record not found")
     return consent_record
+
+
+@router.post("/{version}/agree", response_model=UserConsent, status_code=201)
+def agree_to_consent_record(version: str, candidate: dict = Depends(require_candidate)):
+    user_consent = consent_records_service.record_consent(candidate["interview_id"], version)
+    if not user_consent:
+        raise HTTPException(status_code=404, detail="Consent record not found")
+    return user_consent
