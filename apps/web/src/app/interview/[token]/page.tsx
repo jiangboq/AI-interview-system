@@ -15,6 +15,14 @@ interface InterviewInfo {
   status: string | null;
 }
 
+interface ConsentRecord {
+  id: string;
+  consent: string;
+  version: string;
+}
+
+const CONSENT_VERSION = "v1";
+
 type PageState = "loading" | "not_found" | "email_form" | "confirmed" | "starting" | "interviewing" | "error";
 
 export default function CandidateInterviewPage() {
@@ -31,6 +39,7 @@ export default function CandidateInterviewPage() {
   const [livekitUrl, setLivekitUrl] = useState("");
   const [consentChecked, setConsentChecked] = useState(false);
   const [candidateToken, setCandidateToken] = useState("");
+  const [consentRecord, setConsentRecord] = useState<ConsentRecord | null>(null);
 
   useEffect(() => {
     async function loadInterview() {
@@ -50,6 +59,20 @@ export default function CandidateInterviewPage() {
     }
     loadInterview();
   }, [token]);
+
+  useEffect(() => {
+    async function loadConsentRecord() {
+      try {
+        const res = await fetch(`${API_URL}/api/consent-records/${CONSENT_VERSION}`);
+        if (!res.ok) return;
+        const data: ConsentRecord = await res.json();
+        setConsentRecord(data);
+      } catch {
+        // Privacy notice is best-effort; the confirmed screen falls back gracefully if it's missing.
+      }
+    }
+    loadConsentRecord();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -226,10 +249,13 @@ export default function CandidateInterviewPage() {
 
             <div style={styles.consentBox}>
               <p style={styles.consentTitle}>Privacy notice</p>
-              <ul style={styles.consentList}>
-                <li>We will not record your voice.</li>
-                <li>We will collect the transcript of this interview for evaluation purposes.</li>
-              </ul>
+              <div style={styles.consentList}>
+                {(consentRecord?.consent ?? "").split(/\n\s*\n/).filter(Boolean).map((paragraph, i) => (
+                  <p key={i} style={styles.consentParagraph}>
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
               <label style={styles.consentLabel}>
                 <input
                   type="checkbox"
@@ -495,12 +521,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   consentList: {
     margin: "0 0 0.75rem",
-    paddingLeft: "1.1rem",
     fontSize: "0.875rem",
     color: "#495057",
     display: "flex",
     flexDirection: "column" as const,
-    gap: "0.35rem",
+    gap: "0.5rem",
+  },
+  consentParagraph: {
+    margin: 0,
   },
   consentLabel: {
     display: "flex",
