@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from controller.auth import router as auth_router
 from controller.candidates import router as candidates_router
+from controller.consent_records import router as consent_records_router
 from controller.interviews import router as interviews_router
 from controller.jobs import router as jobs_router
 from controller.livekit import router as livekit_router
@@ -52,6 +53,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(jobs_router)
 app.include_router(candidates_router)
+app.include_router(consent_records_router)
 app.include_router(interviews_router)
 app.include_router(organizations_router)
 app.include_router(livekit_router)
