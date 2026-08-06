@@ -18,8 +18,10 @@ def get_all_interviews(limit: int, offset: int, org_ids: list[str] | None) -> tu
     return interviews_dao.fetch_all_interviews(limit, offset, org_ids)
 
 
-def create_interview(candidate_id: str, job_id: str, expected_duration: int | None = None) -> dict:
-    return interviews_dao.insert_interview(candidate_id, job_id, expected_duration)
+def create_interview(
+    candidate_id: str, job_id: str, expected_duration: int | None = None, template_id: str | None = None
+) -> dict:
+    return interviews_dao.insert_interview(candidate_id, job_id, expected_duration, template_id)
 
 
 def evaluate_resume_match(candidate_id: str, job_id: str) -> None:

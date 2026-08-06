@@ -19,6 +19,12 @@ interface Job {
   level: string | null;
 }
 
+interface Template {
+  id: string;
+  name: string | null;
+  interview_type_name: string | null;
+}
+
 interface InterviewSession {
   session_id: string;
   invite_token: string;
@@ -46,6 +52,10 @@ function CreateInterviewForm() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showJobDropdown, setShowJobDropdown] = useState(false);
+  const [templateQuery, setTemplateQuery] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [durationMinutes, setDurationMinutes] = useState("30");
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [loading, setLoading] = useState(false);
@@ -53,6 +63,7 @@ function CreateInterviewForm() {
   const [copied, setCopied] = useState(false);
   const candidateDropdownRef = useRef<HTMLDivElement>(null);
   const jobDropdownRef = useRef<HTMLDivElement>(null);
+  const templateDropdownRef = useRef<HTMLDivElement>(null);
 
 
   useEffect(() => {
@@ -62,6 +73,9 @@ function CreateInterviewForm() {
       }
       if (jobDropdownRef.current && !jobDropdownRef.current.contains(e.target as Node)) {
         setShowJobDropdown(false);
+      }
+      if (templateDropdownRef.current && !templateDropdownRef.current.contains(e.target as Node)) {
+        setShowTemplateDropdown(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -138,6 +152,32 @@ function CreateInterviewForm() {
     ? jobs.filter((j) => j.title?.toLowerCase().includes(positionQuery.toLowerCase()))
     : jobs;
 
+  async function fetchTemplates() {
+    if (templates.length > 0) {
+      setShowTemplateDropdown(true);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/templates`, { headers: authHeaders() });
+      if (!res.ok) throw new Error();
+      const data: Template[] = await res.json();
+      setTemplates(data);
+      setShowTemplateDropdown(true);
+    } catch {
+      // silently fail — user can still leave the template unselected
+    }
+  }
+
+  function selectTemplate(t: Template) {
+    setSelectedTemplate(t);
+    setTemplateQuery(t.name ?? "");
+    setShowTemplateDropdown(false);
+  }
+
+  const filteredTemplates = templateQuery
+    ? templates.filter((t) => t.name?.toLowerCase().includes(templateQuery.toLowerCase()))
+    : templates;
+
   async function startInterview() {
     if (!selectedCandidate || !selectedJob) {
       setError("Please select a candidate and a position.");
@@ -158,6 +198,7 @@ function CreateInterviewForm() {
           candidate_id: selectedCandidate.id,
           job_id: selectedJob.id,
           expected_duration: Math.round(minutes * 60),
+          template_id: selectedTemplate?.id ?? null,
         }),
       });
       if (!res.ok) {
@@ -185,6 +226,8 @@ function CreateInterviewForm() {
     setSelectedCandidate(null);
     setPositionQuery("");
     setSelectedJob(null);
+    setTemplateQuery("");
+    setSelectedTemplate(null);
     setDurationMinutes("30");
   }
 
@@ -262,6 +305,41 @@ function CreateInterviewForm() {
                           <span style={styles.dropdownEmail}>
                             {j.level.charAt(0).toUpperCase() + j.level.slice(1)}
                           </span>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            <label style={styles.label}>Template</label>
+            <div style={styles.dropdownWrapper} ref={templateDropdownRef}>
+              <input
+                style={styles.input}
+                placeholder="Search by template name…"
+                value={templateQuery}
+                onFocus={fetchTemplates}
+                onChange={(e) => {
+                  setTemplateQuery(e.target.value);
+                  setSelectedTemplate(null);
+                  setShowTemplateDropdown(true);
+                }}
+              />
+              {showTemplateDropdown && (
+                <div style={styles.dropdown}>
+                  {filteredTemplates.length === 0 ? (
+                    <div style={styles.dropdownEmpty}>No templates found</div>
+                  ) : (
+                    filteredTemplates.map((t) => (
+                      <div
+                        key={t.id}
+                        style={styles.dropdownItem}
+                        onMouseDown={() => selectTemplate(t)}
+                      >
+                        <span style={styles.dropdownName}>{t.name ?? "—"}</span>
+                        {t.interview_type_name && (
+                          <span style={styles.dropdownEmail}>{t.interview_type_name}</span>
                         )}
                       </div>
                     ))

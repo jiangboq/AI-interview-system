@@ -37,18 +37,20 @@ def fetch_all_interviews(limit: int, offset: int, org_ids: list[str] | None) -> 
             return paginate_rows([dict(row) for row in cur.fetchall()])
 
 
-def insert_interview(candidate_id: str, job_id: str, expected_duration: int | None = None) -> dict:
+def insert_interview(
+    candidate_id: str, job_id: str, expected_duration: int | None = None, template_id: str | None = None
+) -> dict:
     invite_token = secrets.token_urlsafe(32)
     access_code = _generate_access_code()
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
                 """
-                INSERT INTO interviews (candidate_id, job_id, status, invite_token, access_code, expected_duration)
-                VALUES (%s, %s, 'new', %s, %s, %s)
-                RETURNING id::text, candidate_id::text, job_id::text, status, created_at::text, invite_token, access_code, expected_duration
+                INSERT INTO interviews (candidate_id, job_id, template_id, status, invite_token, access_code, expected_duration)
+                VALUES (%s, %s, %s, 'new', %s, %s, %s)
+                RETURNING id::text, candidate_id::text, job_id::text, template_id::text, status, created_at::text, invite_token, access_code, expected_duration
                 """,
-                (candidate_id, job_id, invite_token, access_code, expected_duration),
+                (candidate_id, job_id, template_id, invite_token, access_code, expected_duration),
             )
             conn.commit()
             return dict(cur.fetchone())
