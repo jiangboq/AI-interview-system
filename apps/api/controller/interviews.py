@@ -19,6 +19,7 @@ class InterviewRow(BaseModel):
     candidate_name: str | None
     job_id: str | None
     job_title: str | None
+    template_name: str | None
     status: str | None
     created_at: str
 
@@ -27,12 +28,14 @@ class CreateInterviewRequest(BaseModel):
     candidate_id: str
     job_id: str
     expected_duration: int | None = None
+    template_id: str | None = None
 
 
 class Interview(BaseModel):
     id: str
     candidate_id: str
     job_id: str
+    template_id: str | None = None
     status: str
     created_at: str
     invite_token: str
@@ -110,7 +113,9 @@ def create_interview(
     if not jobs_service.get_job(req.job_id, org_ids):
         raise HTTPException(status_code=403, detail="Not authorized for this job's organization")
     try:
-        interview = interviews_service.create_interview(req.candidate_id, req.job_id, req.expected_duration)
+        interview = interviews_service.create_interview(
+            req.candidate_id, req.job_id, req.expected_duration, req.template_id
+        )
     except Exception as e:
         logger.exception("Failed to create interview for candidate %s / job %s", req.candidate_id, req.job_id)
         raise HTTPException(status_code=500, detail=str(e))

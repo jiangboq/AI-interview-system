@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: "/jobs", label: "Jobs" },
   { href: "/interviews", label: "Interviews" },
   { href: "/candidates", label: "Candidates" },
+  { href: "/templates", label: "Templates" },
   { href: "/users", label: "Users" },
 ];
 
