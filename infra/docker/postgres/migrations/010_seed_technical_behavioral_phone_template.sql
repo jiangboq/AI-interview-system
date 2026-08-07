@@ -4,7 +4,7 @@ INSERT INTO interview_templates (name, is_global, interview_type, duration_minut
 VALUES (
   'technical and behavioral phone interview',
   TRUE,
-  'f5c7f230-a256-4e25-86b8-4ef78ad0a393',
+  (SELECT id FROM interview_type WHERE name = 'Phone Technical Interview'),
   NULL,
   '{
     "steps": [

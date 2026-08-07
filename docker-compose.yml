@@ -25,9 +25,9 @@ services:
     image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-jiangboqiu}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
-      POSTGRES_DB: ${POSTGRES_DB:-interview}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env, see configs/env.template}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env, see configs/env.template}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env, see configs/env.template}
     ports:
       - "5432:5432"
     volumes:
@@ -35,6 +35,21 @@ services:
       - ./infra/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       disable: true
+
+  migrate:
+    image: pgvector/pgvector:pg16
+    restart: "no"
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:?set POSTGRES_USER in .env, see configs/env.template}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env, see configs/env.template}
+      PGDATABASE: ${POSTGRES_DB:?set POSTGRES_DB in .env, see configs/env.template}
+    volumes:
+      - ./infra/docker/postgres/migrations:/migrations:ro
+      - ./infra/docker/postgres/migrate.sh:/migrate.sh:ro
+    entrypoint: ["bash", "/migrate.sh"]
+    depends_on:
+      - postgres
 
 # redis:
 #   image: redis:7-alpine
@@ -139,14 +154,15 @@ services:
     env_file:
       - ./configs/dev.env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-jiangboqiu}:${POSTGRES_PASSWORD:-admin}@postgres:5432/${POSTGRES_DB:-interview}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?set POSTGRES_USER in .env, see configs/env.template}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env, see configs/env.template}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB in .env, see configs/env.template}
       MONGO_URL: mongodb://mongo:27017
     ports:
       - "8000:8000"
     volumes:
       - ./uploads:/app/uploads
     depends_on:
-      - postgres
+      migrate:
+        condition: service_completed_successfully
 
   voice-agent:
     build:
