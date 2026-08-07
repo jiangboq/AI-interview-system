@@ -25,9 +25,9 @@ services:
     image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-jiangboqiu}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
-      POSTGRES_DB: ${POSTGRES_DB:-interview}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env, see configs/env.template}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env, see configs/env.template}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env, see configs/env.template}
     ports:
       - "5432:5432"
     volumes:
@@ -41,9 +41,9 @@ services:
     restart: "no"
     environment:
       PGHOST: postgres
-      PGUSER: ${POSTGRES_USER:-jiangboqiu}
-      PGPASSWORD: ${POSTGRES_PASSWORD:-admin}
-      PGDATABASE: ${POSTGRES_DB:-interview}
+      PGUSER: ${POSTGRES_USER:?set POSTGRES_USER in .env, see configs/env.template}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env, see configs/env.template}
+      PGDATABASE: ${POSTGRES_DB:?set POSTGRES_DB in .env, see configs/env.template}
     volumes:
       - ./infra/docker/postgres/migrations:/migrations:ro
       - ./infra/docker/postgres/migrate.sh:/migrate.sh:ro
@@ -154,7 +154,7 @@ services:
     env_file:
       - ./configs/dev.env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-jiangboqiu}:${POSTGRES_PASSWORD:-admin}@postgres:5432/${POSTGRES_DB:-interview}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?set POSTGRES_USER in .env, see configs/env.template}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env, see configs/env.template}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB in .env, see configs/env.template}
       MONGO_URL: mongodb://mongo:27017
     ports:
       - "8000:8000"
