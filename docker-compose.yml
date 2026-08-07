@@ -36,6 +36,21 @@ services:
     healthcheck:
       disable: true
 
+  migrate:
+    image: pgvector/pgvector:pg16
+    restart: "no"
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-jiangboqiu}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-admin}
+      PGDATABASE: ${POSTGRES_DB:-interview}
+    volumes:
+      - ./infra/docker/postgres/migrations:/migrations:ro
+      - ./infra/docker/postgres/migrate.sh:/migrate.sh:ro
+    entrypoint: ["bash", "/migrate.sh"]
+    depends_on:
+      - postgres
+
 # redis:
 #   image: redis:7-alpine
 #   restart: unless-stopped
@@ -146,7 +161,8 @@ services:
     volumes:
       - ./uploads:/app/uploads
     depends_on:
-      - postgres
+      migrate:
+        condition: service_completed_successfully
 
   voice-agent:
     build:

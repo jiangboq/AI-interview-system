@@ -9,6 +9,7 @@ An AI-powered interview platform with a voice agent (LiveKit), a FastAPI backend
 | `web` | `apps/web` | Next.js 14 frontend |
 | `api` | `apps/api` | FastAPI backend (Postgres + Mongo) |
 | `voice-agent` | `services/voice-agent` | LiveKit voice agent worker |
+| `migrate` | `infra/docker/postgres` | One-shot Postgres migration runner (runs before `api`) |
 | `postgres` | — | Primary relational store (pgvector) |
 | `mongo` | — | Transcript/log storage |
 | `livekit` | — | Real-time media server for interview calls |
@@ -61,15 +62,17 @@ This builds and starts:
 - `voice-agent` (LiveKit agent worker, no exposed port)
 - `web` (Next.js) on `localhost:3000`
 
-### 4. Apply database migrations
+### 4. Database migrations
 
-`infra/docker/postgres/init.sql` bootstraps the base schema automatically the first time the `postgres` volume is created. Numbered migration files in `infra/docker/postgres/migrations/` are **not** applied automatically and must be run manually, in order, against the running database:
+`infra/docker/postgres/init.sql` bootstraps the base schema automatically the first time the `postgres` volume is created. Numbered migration files in `infra/docker/postgres/migrations/` are applied automatically by the `migrate` service, which runs once (tracked in a `schema_migrations` table) before `api` starts — `docker compose up` handles this for you, nothing manual required.
+
+To (re-)run migrations on their own, e.g. after adding a new migration file to an already-running stack:
 
 ```bash
-for f in infra/docker/postgres/migrations/*.sql; do
-  docker compose exec -T postgres psql -U ${POSTGRES_USER:-jiangboqiu} -d ${POSTGRES_DB:-interview} -f - < "$f"
-done
+docker compose run --rm migrate
 ```
+
+Already-applied migrations are skipped, so this is safe to re-run at any time.
 
 > If you change `init.sql` after the `postgres` volume already exists, it won't re-run. Reset with `docker compose down -v` to force a clean re-init (this deletes local DB data).
 
