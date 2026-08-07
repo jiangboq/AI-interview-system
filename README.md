@@ -36,6 +36,7 @@ Copy the template and fill in the values (at minimum `OPENAI_API_KEY`):
 
 ```bash
 cp configs/env.template configs/dev.env
+ln -s configs/dev.env .env
 ```
 
 Edit `configs/dev.env` and set:
@@ -46,6 +47,8 @@ Edit `configs/dev.env` and set:
 - `SECRET_KEY` — any local dev secret is fine (the template default works for local use)
 
 `configs/dev.env` is gitignored, so it's safe to keep real secrets there.
+
+The `.env` symlink matters: `env_file: ./configs/dev.env` in `docker-compose.yml` only injects values *into containers*. Docker Compose's own `${VAR}` substitution (used for things like `POSTGRES_USER`/`POSTGRES_PASSWORD` in service definitions) is resolved separately, from your shell environment or a file literally named `.env` in the project root — hence the symlink, so there's one source of truth instead of two.
 
 ### 3. Start the stack
 
