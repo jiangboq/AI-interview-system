@@ -26,7 +26,7 @@ An AI-powered interview platform with a voice agent (LiveKit), a FastAPI backend
 ### 1. Clone the repo
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/jiangboq/AI-interview-system.git
 cd AI-interview-system
 ```
 
