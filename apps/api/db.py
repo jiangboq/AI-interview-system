@@ -25,10 +25,24 @@ def _with_default_sslmode(url: str, default_sslmode: str) -> str:
     return urlunparse(parsed._replace(query=urlencode(query, doseq=True)))
 
 
-DATABASE_URL = _with_default_sslmode(
-    os.getenv("DATABASE_URL", "postgresql://jiangboqiu:admin@localhost:5432/interview"),
-    os.getenv("DB_SSLMODE", "prefer"),
-)
+def _database_url() -> str:
+    url = os.getenv("DATABASE_URL")
+    if url:
+        return url
+    if os.getenv("ENVIRONMENT") == "production":
+        raise RuntimeError("DATABASE_URL must be set when ENVIRONMENT=production")
+    # Local/dev fallback: build the DSN from the same POSTGRES_* vars
+    # docker-compose uses, so each developer's own dev.env settings apply
+    # instead of one hardcoded set of credentials.
+    user = os.getenv("POSTGRES_USER", "postgres")
+    password = os.getenv("POSTGRES_PASSWORD", "postgres")
+    host = os.getenv("POSTGRES_HOST", "localhost")
+    port = os.getenv("POSTGRES_PORT", "5432")
+    dbname = os.getenv("POSTGRES_DB", "interview")
+    return f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+
+
+DATABASE_URL = _with_default_sslmode(_database_url(), os.getenv("DB_SSLMODE", "prefer"))
 DB_POOL_MIN_SIZE = int(os.getenv("DB_POOL_MIN_SIZE", "1"))
 DB_POOL_MAX_SIZE = int(os.getenv("DB_POOL_MAX_SIZE", "10"))
 # getconn() raises immediately if the pool is exhausted rather than waiting,
